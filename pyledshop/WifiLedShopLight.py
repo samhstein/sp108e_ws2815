@@ -25,7 +25,7 @@ class WifiLedShopLight(LightEntity):
   A Wifi LED Shop Light
   """
 
-  def __init__(self, ip, name, port = 8189, timeout = 5, retries = 5):
+  def __init__(self, ip, name, port = 8189, timeout = 1, retries = 5):
     """
     Creates a new Wifi LED Shop light
 
@@ -190,11 +190,8 @@ class WifiLedShopLight(LightEntity):
     Formats the low level message details like Start/End flag, binary data, and command
 
     :param command: The command to send to the controller. See the Command enum for valid commands.
-
-    assume we got dropped!!
     """
 
-    self.reconnect();
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
