@@ -126,13 +126,15 @@ class WifiLedShopLight(LightEntity):
         self.set_color(r, g, b)
         return
 
-    if not self._state.is_on:
+    self.sync_state()
+    if self._state.is_off:
       self.toggle()
 
   def turn_off(self):
     """
     Toggles the light off only if it is not already off
     """
+    self.sync_state()
     if self._state.is_on:
       self.toggle()
 
@@ -239,6 +241,7 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def brightness(self):
+    self.sync_state()
     return self._state.brightness
 
   @property
