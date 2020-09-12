@@ -242,7 +242,7 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def is_on(self):
-    self.sync_data()
+    self.sync_state()
     return self._state.is_on
 
   @property
