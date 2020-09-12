@@ -195,7 +195,7 @@ class WifiLedShopLight(LightEntity):
     attempts = 0
     while True:
       try:
-        self.sock.sendall(raw_data)
+        self._sock.sendall(raw_data)
         return
       except (socket.timeout, BrokenPipeError):
         if (attempts < self._retries):
