@@ -229,7 +229,7 @@ class WifiLedShopLight(LightEntity):
     """
     attempts = 0
     while True:
-        print('in sync')
+      print('in sync...')
       try:
         # Send the request for sync data
         self.send_command(Command.SYNC)
