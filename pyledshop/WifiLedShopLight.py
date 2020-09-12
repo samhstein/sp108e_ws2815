@@ -42,17 +42,11 @@ class WifiLedShopLight(LightEntity):
     self._state = WifiLedShopLightState()
     self._sock = None
 
-    self.sync_state()
-
   def __enter__(self):
     return self
 
   def __exit__(self, type, value, traceback):
     self.sock,close()
-
-  def update(self):
-    print('in update...')
-    self.sync_state();
 
   def set_color(self, r=0, g=0, b=0):
     """
@@ -109,7 +103,6 @@ class WifiLedShopLight(LightEntity):
     Toggles the state of the light without checking the current state
     """
     self._state.is_on = not self._state.is_on
-    print('in toggle')
     self.send_command(Command.TOGGLE)
 
   def turn_on(self, **kwargs):
@@ -207,10 +200,8 @@ class WifiLedShopLight(LightEntity):
         else:
           raise
 
-  def sync_state(self):
-    """
-    Syncs the state of the controller with the state of this object
-    """
+  def update(self):
+    print('in update...')
     attempts = 0
     while True:
       try:
