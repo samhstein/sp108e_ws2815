@@ -127,7 +127,7 @@ class WifiLedShopLight(LightEntity):
         return
 
     self.sync_state()
-    if !self._state.is_on:
+    if not self._state.is_on:
       self.toggle()
 
   def turn_off(self):
