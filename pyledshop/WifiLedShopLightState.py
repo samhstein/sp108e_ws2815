@@ -19,7 +19,7 @@ class WifiLedShopLightState:
 
   def update_from_sync(self, sync_data):
     print('ufs: ', self)
-    self.is_on = sync_data[StatePosition.IS_ON] == 1
+    self.is_on = sync_data[StatePosition.IS_ON]
     self.color = (
       sync_data[StatePosition.COLOR_R],
       sync_data[StatePosition.COLOR_G],
@@ -28,4 +28,4 @@ class WifiLedShopLightState:
     self.mode = sync_data[StatePosition.MODE]
     self.speed = sync_data[StatePosition.SPEED]
     self.brightness = sync_data[StatePosition.BRIGHTNESS]
-    print('ufs updated: ', self)    
+    print('ufs updated: ', self)

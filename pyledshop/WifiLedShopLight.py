@@ -34,7 +34,6 @@ class WifiLedShopLight(LightEntity):
     :param timeout: The timeout in seconds to wait listening to the socket.
     :param retries: The number of times to retry sending a command if it fails or times out before giving up.
     """
-    print('wlsl...', ip)
     self._name = name
     self._ip = ip
     self._port = port
@@ -44,7 +43,6 @@ class WifiLedShopLight(LightEntity):
     self._sock = None
 
     self.sync_state()
-    print(self._state)
 
   def __enter__(self):
     return self
@@ -215,7 +213,6 @@ class WifiLedShopLight(LightEntity):
     """
     attempts = 0
     while True:
-      print('in sync...')
       try:
         # Send the request for sync data
         response = self.send_command(Command.SYNC, [], 1024)
