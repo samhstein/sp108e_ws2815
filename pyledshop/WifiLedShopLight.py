@@ -178,7 +178,7 @@ class WifiLedShopLight(LightEntity):
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     self.send_bytes(raw_data)
     if recv_bytes > 0:
-        result = self.sock.recv(recv_bytes)
+        result = self._sock.recv(recv_bytes)
 
     self._sock.close()
     return result
