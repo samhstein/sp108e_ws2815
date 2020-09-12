@@ -121,15 +121,15 @@ class WifiLedShopLight(LightEntity):
 
     print('in turn on bottom')
 
-    if not self._state.is_on:
-      self.toggle()
+    #if not self._state.is_on:
+    self.toggle()
 
   def turn_off(self):
     """
     Toggles the light off only if it is not already off
     """
-    if self._state.is_on:
-      self.toggle()
+    #if self._state.is_on:
+    self.toggle()
 
   def set_segments(self, segments):
     """
