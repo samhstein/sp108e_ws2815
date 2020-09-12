@@ -41,6 +41,7 @@ class WifiLedShopLight(LightEntity):
     self._retries = retries
     self._state = WifiLedShopLightState()
     self._sock = None
+    self.update()
 
   def __enter__(self):
     return self
@@ -193,7 +194,7 @@ class WifiLedShopLight(LightEntity):
         self._sock.sendall(raw_data)
         return
       except (socket.timeout, BrokenPipeError):
-          print('in socket exeption....')
+        print('in socket exeption....')
         if (attempts < self._retries):
           attempts += 1
           self._sock.close()
