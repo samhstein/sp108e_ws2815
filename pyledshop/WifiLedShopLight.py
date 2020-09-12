@@ -170,14 +170,19 @@ class WifiLedShopLight(LightEntity):
     self.set_segments(segments)
     self.set_lights_per_segment(int(total_lights / segments))
 
-  def send_command(self, command, data=[]):
+  def send_command(self, command, data=[], recv_bytes=0):
+    result = None
     self.sock.connect((self._ip, self._port))
-
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     self.send_bytes(raw_data)
+    if recv_bytes > 0:
+        result = self.socket.recv(recv_bytes)
+
     self.sock.close()
+    return result
+
 
   def send_bytes(self, data):
     """
@@ -194,8 +199,8 @@ class WifiLedShopLight(LightEntity):
         return
       except (socket.timeout, BrokenPipeError):
         if (attempts < self._retries):
-          self.reconnect()
-          attempts += 1
+          self.socket.close()
+          self.sock.connect((self._ip, self._port))
         else:
           raise
 
@@ -208,9 +213,7 @@ class WifiLedShopLight(LightEntity):
       print('in sync...')
       try:
         # Send the request for sync data
-        self.send_command(Command.SYNC)
-
-        response = self.sock.recv(1024)
+        response = self.send_command(Command.SYNC, [], 1024)
 
         # Extract the state data
         state = bytearray(response)
