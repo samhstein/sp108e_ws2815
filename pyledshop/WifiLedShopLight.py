@@ -42,7 +42,10 @@ class WifiLedShopLight(LightEntity):
     self._retries = retries
     self._state = WifiLedShopLightState()
 
-    self.sock = None
+    # create and setup our socket
+    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.sock.settimeout(self._timeout)
+
     self.sync_state()
     print(self._state)
 
@@ -50,29 +53,11 @@ class WifiLedShopLight(LightEntity):
     return self
 
   def __exit__(self, type, value, traceback):
-    self.close()
+    self.sock,close()
 
   def update(self):
     print('in update...')
     self.sync_state();
-
-  def reconnect(self):
-    """
-    Try to (re-)connect to the controller via a socket
-    """
-    if self.sock:
-      self.close()
-
-    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.sock.settimeout(self._timeout)
-    self.sock.connect((self._ip, self._port))
-
-  def close(self):
-    """
-    Closes the socket connection to the light
-    """
-    self.sock.close()
-    self.sock = None
 
   def set_color(self, r=0, g=0, b=0):
     """
@@ -186,22 +171,13 @@ class WifiLedShopLight(LightEntity):
     self.set_lights_per_segment(int(total_lights / segments))
 
   def send_command(self, command, data=[]):
-    """
-    Helper method to send a command to the controller.
+    self.sock.connect((self._ip, self._port))
 
-    Mostly for internal use, prefer the specific functions where possible.
-
-    Formats the low level message details like Start/End flag, binary data, and command
-
-    :param command: The command to send to the controller. See the Command enum for valid commands.
-    """
-
-    self.reconnect()
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     self.send_bytes(raw_data)
-    self.close()
+    self.sock.close()
 
   def send_bytes(self, data):
     """
@@ -243,7 +219,6 @@ class WifiLedShopLight(LightEntity):
       except (socket.timeout, BrokenPipeError):
         # When there is an error with the socket, close the connection and connect again
         if attempts < self._retries:
-          self.reconnect()
           attempts += 1
         else:
           raise
