@@ -41,10 +41,7 @@ class WifiLedShopLight(LightEntity):
     self._timeout = timeout
     self._retries = retries
     self._state = WifiLedShopLightState()
-
-    # create and setup our socket
-    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.sock.settimeout(self._timeout)
+    self._sock = None
 
     self.sync_state()
     print(self._state)
@@ -172,7 +169,10 @@ class WifiLedShopLight(LightEntity):
 
   def send_command(self, command, data=[], recv_bytes=0):
     result = None
-    self.sock.connect((self._ip, self._port))
+    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self._sock.settimeout(self._timeout)
+    self._sock.connect((self._ip, self._port))
+
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
@@ -180,7 +180,7 @@ class WifiLedShopLight(LightEntity):
     if recv_bytes > 0:
         result = self.sock.recv(recv_bytes)
 
-    self.sock.close()
+    self._sock.close()
     return result
 
 
@@ -199,8 +199,9 @@ class WifiLedShopLight(LightEntity):
         return
       except (socket.timeout, BrokenPipeError):
         if (attempts < self._retries):
-          self.socket.close()
-          self.sock.connect((self._ip, self._port))
+          attemps += 1
+          self._sock.close()
+          self._sock.connect((self._ip, self._port))
         else:
           raise
 
