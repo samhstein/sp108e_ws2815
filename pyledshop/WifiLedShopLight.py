@@ -111,6 +111,7 @@ class WifiLedShopLight(LightEntity):
     Toggles the state of the light without checking the current state
     """
     self._state.is_on = not self._state.is_on
+    print('in toggle')
     self.send_command(Command.TOGGLE)
 
   def turn_on(self, **kwargs):
