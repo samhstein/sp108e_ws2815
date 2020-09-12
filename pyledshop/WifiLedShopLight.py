@@ -43,14 +43,18 @@ class WifiLedShopLight(LightEntity):
     self._state = WifiLedShopLightState()
 
     self.sock = None
-    self.reconnect()
     self.sync_state()
+    print(self._state)
 
   def __enter__(self):
     return self
 
   def __exit__(self, type, value, traceback):
     self.close()
+
+  def update(self):
+    print('in update...')
+    self.sync_state();
 
   def reconnect(self):
     """
@@ -192,10 +196,12 @@ class WifiLedShopLight(LightEntity):
     :param command: The command to send to the controller. See the Command enum for valid commands.
     """
 
+    self.reconnect()
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     self.send_bytes(raw_data)
+    self.close()
 
   def send_bytes(self, data):
     """
@@ -223,6 +229,7 @@ class WifiLedShopLight(LightEntity):
     """
     attempts = 0
     while True:
+        print('in sync')
       try:
         # Send the request for sync data
         self.send_command(Command.SYNC)
@@ -257,6 +264,7 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def is_on(self):
+    self.sync_data()
     return self._state.is_on
 
   @property
