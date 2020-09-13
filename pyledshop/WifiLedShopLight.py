@@ -241,7 +241,7 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def hs_color(self):
-    h,s = color_util.color_RGB_to_hs(set._state.color)
+    h,s = color_util.color_RGB_to_hs(self._state.color)
     print('color: ', h, s)
     return (h, s)
 
