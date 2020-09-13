@@ -104,32 +104,22 @@ class WifiLedShopLight(LightEntity):
     Toggles the state of the light without checking the current state
     """
     self._state.is_on = not self._state.is_on
-    self.send_command(Command.TOGGLE)
+    self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
-    print('in turn on')
-
     if ATTR_BRIGHTNESS in kwargs:
-        print(kwargs[ATTR_BRIGHTNESS])
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
         return
 
     if ATTR_HS_COLOR in kwargs:
-        print(kwargs[ATTR_HS_COLOR])
         r,g,b = color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
         self.set_color(r, g, b)
         return
 
-    print('in turn on bottom')
-
-    #if not self._state.is_on:
     self.toggle()
 
+
   def turn_off(self):
-    """
-    Toggles the light off only if it is not already off
-    """
-    #if self._state.is_on:
     self.toggle()
 
   def set_segments(self, segments):
@@ -163,7 +153,7 @@ class WifiLedShopLight(LightEntity):
     self.set_segments(segments)
     self.set_lights_per_segment(int(total_lights / segments))
 
-  def send_command(self, command, data=[], recv_bytes=0):
+  def send_command(self, command, data=[]):
     result = None
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self._sock.settimeout(self._timeout)
@@ -173,8 +163,10 @@ class WifiLedShopLight(LightEntity):
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     self.send_bytes(raw_data)
-    if recv_bytes > 0:
-        result = self._sock.recv(recv_bytes)
+    try:
+        result = self._sock.recv(1024)
+    except (socket.timeout, BrokenPipeError):
+        pass
 
     self._sock.close()
     return result
@@ -203,12 +195,11 @@ class WifiLedShopLight(LightEntity):
           raise
 
   def update(self):
-    print('in update...')
     attempts = 0
     while True:
       try:
         # Send the request for sync data
-        response = self.send_command(Command.SYNC, [], 1024)
+        response = self.send_command(Command.SYNC, [])
 
         # Extract the state data
         state = bytearray(response)
