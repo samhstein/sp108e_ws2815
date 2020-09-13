@@ -240,5 +240,12 @@ class WifiLedShopLight(LightEntity):
     return self._state.is_on
 
   @property
+  def hs_color(self):
+    h,s = color_util.color_RGB_to_hs(set._state.color)
+    print('color: ', h, s)
+    return (h, s)
+
+
+  @property
   def supported_features(self):
     return SUPPORT_COLOR | SUPPORT_BRIGHTNESS;
