@@ -80,14 +80,9 @@ class WifiLedShopLight(LightEntity):
     self._state.speed = speed
     self.send_command(Command.SET_SPEED, [int(speed)])
 
-  def set_preset(self, preset_string='Solid (custom color)'):
-    """
-    Sets the light effect to the provided built-in effect number
-
-    :param preset: The preset effect to use. Valid values are 0 to 255. See the MonoEffect enum, or MONO_EFFECTS and PRESET_EFFECTS for mapping.
-    """
-    print('in set_preset: ', preset_string)
-    preset = clamp(MONO_EFFECTS[preset_string])
+  def set_effect(self, effect='Solid (custom color)'):
+    print('in set_effect: ', effect)
+    preset = clamp(MONO_EFFECTS[effect])
     self._state.mode = preset
     self.send_command(Command.SET_PRESET, [int(preset)])
 
