@@ -8,7 +8,8 @@ Pixels Magic Dream Color Individually Addressable RGB LED Flexible Strip Light 5
 Signal IP30 Non-Waterproof DC12V Black PCB
 https://www.amazon.com/gp/product/B07LG6J39V/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1
 
-on / off, color and brightness are supported, no effects yet...
+on / off, color and brightness are supported, mono color effects are good,
+presets with colors work but ymmv with rgb wiring...
 
 built using https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_light
 and https://github.com/kylezimmerman/pyledshop as a base.
