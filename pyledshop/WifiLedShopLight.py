@@ -82,7 +82,8 @@ class WifiLedShopLight(LightEntity):
 
   def set_effect(self, effect):
     print('in set_effect: ', effect)
-    preset = clamp(MONO_EFFECTS[effect])
+    both = { **MONO_EFFECTS, **PRESET_EFFECTS }
+    preset = clamp(both[effect])
     self._state.mode = preset
     self.send_command(Command.SET_PRESET, [int(preset)])
 
@@ -105,7 +106,7 @@ class WifiLedShopLight(LightEntity):
 
   def turn_on(self, **kwargs):
     print('turn on: ', kwargs)
-    
+
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
         return
@@ -247,7 +248,6 @@ class WifiLedShopLight(LightEntity):
   def effect(self):
     both = { **MONO_EFFECTS, **PRESET_EFFECTS }
     current_effect = list(both.keys())[list(both.values()).index(self._state.mode)]
-    print('effect: ', current_effect)
     return current_effect
 
   @property
