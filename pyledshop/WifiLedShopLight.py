@@ -1,5 +1,6 @@
 import socket
 
+from .effects import MONO_EFFECTS
 from .constants import (Command, CommandFlag, MonoEffect)
 from .utils import clamp
 from .WifiLedShopLightState import WifiLedShopLightState
