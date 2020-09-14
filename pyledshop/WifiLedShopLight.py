@@ -251,4 +251,4 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def supported_features(self):
-    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT)
+    return (SUPPORT_COLOR | SUPPORT_EFFECT)
