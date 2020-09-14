@@ -80,7 +80,7 @@ class WifiLedShopLight(LightEntity):
     self._state.speed = speed
     self.send_command(Command.SET_SPEED, [int(speed)])
 
-  def set_effect(self, effect='Solid (custom color)'):
+  def set_effect(self, effect):
     print('in set_effect: ', effect)
     preset = clamp(MONO_EFFECTS[effect])
     self._state.mode = preset
