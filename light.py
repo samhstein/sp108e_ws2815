@@ -21,6 +21,5 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     # The configuration check takes care they are present.
     host = config[CONF_HOST]
     name = config[CONF_NAME]
-    print('config: ' + str(config))
     # Add device
     add_entities([WifiLedShopLight(host, name)])

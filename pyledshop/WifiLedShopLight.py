@@ -48,7 +48,7 @@ class WifiLedShopLight(LightEntity):
     return self
 
   def __exit__(self, type, value, traceback):
-    self.sock,close()
+    self._sock.close()
 
   def set_color(self, r=0, g=0, b=0):
     """
@@ -105,6 +105,7 @@ class WifiLedShopLight(LightEntity):
 
   def turn_on(self, **kwargs):
     print('turn on: ', kwargs)
+    
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
         return
@@ -251,4 +252,4 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def supported_features(self):
-    return (SUPPORT_COLOR | SUPPORT_EFFECT)
+    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT)
