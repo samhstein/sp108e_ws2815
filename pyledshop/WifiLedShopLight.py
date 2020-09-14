@@ -239,11 +239,10 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def effect_list(self):
-    return MONO_EFFECTS
+    return list(MONO_EFFECTS)
 
   @property
   def effect(self):
-
     return self._state.mode
 
   @property
