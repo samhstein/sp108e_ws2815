@@ -1,6 +1,6 @@
 import socket
 
-from .effects import MONO_EFFECTS
+from .effects import MONO_EFFECTS, PRESET_EFFECTS
 from .constants import (Command, CommandFlag, MonoEffect)
 from .utils import clamp
 from .WifiLedShopLightState import WifiLedShopLightState
@@ -104,6 +104,7 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
+    print('turn on: ', kwargs)
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
         return
@@ -239,7 +240,7 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def effect_list(self):
-    return list(MONO_EFFECTS)
+    return list({ **MONO_EFFECTS, **PRESET_EFFECTS })
 
   @property
   def effect(self):
