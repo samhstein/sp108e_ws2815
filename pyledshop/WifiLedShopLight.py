@@ -244,8 +244,10 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def effect(self):
-    print('effect: ', self._state.mode)
-    return self._state.mode
+    both = { **MONO_EFFECTS, **PRESET_EFFECTS }
+    current_effect = list(both.keys())[list(both.values()).index(self._state.mode)]
+    print('effect: ', current_effect)
+    return current_effect
 
   @property
   def supported_features(self):
