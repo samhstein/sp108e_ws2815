@@ -113,6 +113,10 @@ class WifiLedShopLight(LightEntity):
         self.set_color(r, g, b)
         return
 
+    if ATTR_EFFECT in kwargs:
+        self.set_effect(kwargs[ATTR_EFFECT])
+        return
+
     self.toggle()
 
 
