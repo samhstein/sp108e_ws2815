@@ -244,8 +244,9 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def effect(self):
+    print('effect: ', self._state.mode)
     return self._state.mode
 
   @property
   def supported_features(self):
-    return SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT
+    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT)
