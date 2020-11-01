@@ -70,6 +70,16 @@ class WifiLedShopLight(LightEntity):
     self._state.brightness = brightness
     self.send_command(Command.SET_BRIGHTNESS, [int(brightness)])
 
+  def set_white(self, white=0):
+    """
+    Sets the white brightness of the light
+
+    :param white: An int describing the white brightness (0 to 255, where 255 is the brightest)
+    """
+    white = clamp(white)
+    self._state.white = white
+    self.send_command(Command.SET_WHITE, [int(white)])
+
   def set_speed(self, speed=0):
     """
     Sets the speed of the effect. Not all effects use the speed, but it can be safely set regardless
@@ -109,6 +119,10 @@ class WifiLedShopLight(LightEntity):
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
+        return
+
+    if ATTR_WHITE_VALUE in kwargs:
+        self.set_white(kwargs[ATTR_WHITE_VALUE])
         return
 
     if ATTR_HS_COLOR in kwargs:
@@ -231,6 +245,10 @@ class WifiLedShopLight(LightEntity):
     return self._state.brightness
 
   @property
+  def white_value(self):
+    return self._state.white
+
+  @property
   def is_on(self):
     return self._state.is_on
 
@@ -252,4 +270,4 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def supported_features(self):
-    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT)
+    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_WHITE_VALUE | SUPPORT_EFFECT)

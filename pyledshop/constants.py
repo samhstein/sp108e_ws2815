@@ -20,6 +20,7 @@ class Command(IntEnum):
   TOGGLE = 0xAA
   SET_COLOR = 0x22
   SET_BRIGHTNESS = 0x2A
+  SET_WHITE = 0x08
   SET_SPEED = 0x03
   SET_PRESET = 0x2C
   SET_CUSTOM = 0x02
@@ -40,6 +41,7 @@ class StatePosition(IntEnum):
   MODE = 2
   SPEED = 3
   BRIGHTNESS = 4
+  WHITE = 15
 
 class MonoEffect(IntEnum):
   """
