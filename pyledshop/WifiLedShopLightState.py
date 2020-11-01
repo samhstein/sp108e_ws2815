@@ -5,6 +5,7 @@ class WifiLedShopLightState:
     self.is_on = False
     self.color = (255, 255, 255)
     self.brightness = 255
+    self.white = 255
     self.mode = MonoEffect.SOLID
     self.speed = 255
 
@@ -27,3 +28,4 @@ class WifiLedShopLightState:
     self.mode = sync_data[StatePosition.MODE]
     self.speed = sync_data[StatePosition.SPEED]
     self.brightness = sync_data[StatePosition.BRIGHTNESS]
+    self.white = sync_data[StatePosition.WHITE]
