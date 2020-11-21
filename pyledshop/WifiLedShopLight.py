@@ -131,7 +131,7 @@ class WifiLedShopLight(LightEntity):
     self.toggle()
     if self._state.is_on:
         self.toggle()
-    else
+    else:
         print('already off')
 
   def set_segments(self, segments):
