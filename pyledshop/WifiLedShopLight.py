@@ -105,6 +105,10 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
+    if self._state.is_on:
+        print('already on')
+        return
+
     print('turn on: ', kwargs)
 
     if ATTR_BRIGHTNESS in kwargs:
@@ -125,6 +129,10 @@ class WifiLedShopLight(LightEntity):
 
   def turn_off(self):
     self.toggle()
+    if self._state.is_on:
+        self.toggle()
+    else
+        print('already off')
 
   def set_segments(self, segments):
     """
