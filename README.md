@@ -3,7 +3,7 @@
 This integration is for the ALITOVE WS2812B WS2811 WS2801 LED WiFi Controller
 https://www.amazon.com/gp/product/B07DDB6JHJ/ref=ppx_yo_dt_b_asin_title_o03_s01?ie=UTF8&psc=1
 
-only tested with one controller so far using a BTF-LIGHTING WS2815 (Upgraded WS2812B) 16.4ft 300
+tested with two controllers so far using a BTF-LIGHTING WS2815 (Upgraded WS2812B) 16.4ft 300
 Pixels Magic Dream Color Individually Addressable RGB LED Flexible Strip Light 5050 SMD Dual
 Signal IP30 Non-Waterproof DC12V Black PCB
 https://www.amazon.com/gp/product/B07LG6J39V/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1
