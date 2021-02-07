@@ -5,7 +5,7 @@ from .pyledshop import WifiLedShopLight
 import homeassistant.helpers.config_validation as cv
 # Import the device class from the component that you want to support
 from homeassistant.components.light import PLATFORM_SCHEMA, LightEntity
-from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.const import CONF_HOST, CONF_NAME, UNIQUE_ID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
     vol.Required(CONF_NAME): cv.string,
+    vol.Required(CONF_UNIQUE_ID): cv.string,
 })
 
 
@@ -21,5 +22,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     # The configuration check takes care they are present.
     host = config[CONF_HOST]
     name = config[CONF_NAME]
+    unique_id = config[CONF_UNIQUE_ID]
     # Add device
     add_entities([WifiLedShopLight(host, name)])
