@@ -42,6 +42,7 @@ class WifiLedShopLight(LightEntity):
     self._retries = retries
     self._state = WifiLedShopLightState()
     self._sock = None
+    self._unique_id = self.send_command(Command.GET_ID, []).decode('utf-8')
     self.update()
 
   def __enter__(self):
@@ -241,7 +242,12 @@ class WifiLedShopLight(LightEntity):
   def __repr__(self):
     return f"""WikiLedShopLight @ {self._ip}:{self._port}
       state: {self._state}
+      unique_id: {self._unique_id}
     """
+
+  @property
+  def unique_id(self):
+      return self._unique_id
 
   @property
   def name(self):

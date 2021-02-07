@@ -12,7 +12,7 @@ class CommandFlag(IntEnum):
 class Command(IntEnum):
   """
   Commands that can be sent to the device.
-  
+
   Mostly for internal use, prefer to use the functions on WifiLedShopLight instead.
 
   To be used with WifiLedShopLight.send_command()
@@ -27,11 +27,12 @@ class Command(IntEnum):
   SET_LIGHTS_PER_SEGMENT = 0x2D
   SET_SEGMENT_COUNT = 0x2E
   SYNC = 0x10
+  GET_ID = 0x77
 
 class StatePosition(IntEnum):
   """
-  State is returned from the device as a byte array. 
-  
+  State is returned from the device as a byte array.
+
   This provides the position of each piece of useful data within the state bytearray.
   """
   IS_ON = 1
