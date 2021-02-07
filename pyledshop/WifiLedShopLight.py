@@ -250,6 +250,15 @@ class WifiLedShopLight(LightEntity):
       return self._unique_id
 
   @property
+  def device_info(self):
+    return {
+      "identifiers": {('wifi-led-strip-controller', self._unique_id)},
+      "manufacturer": "BTF-LIGHTING",
+      "name": self._name,
+      "model": 'sp108e',
+    }
+
+  @property
   def name(self):
       """Return the display name of this light."""
       return self._name
