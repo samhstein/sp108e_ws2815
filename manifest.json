@@ -1,8 +1,14 @@
 {
-  "domain": "sp108e",
-  "name": "Led Shop SP108E",
-  "documentation": "",
+  "domain": "sp108e_ws2815",
+  "name": "sp108e_ws2815",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/sp108e_ws2815",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
   "dependencies": [],
-  "codeowners": [],
-  "requirements": []
+  "codeowners": [
+    "@samhstein"
+  ]
 }
