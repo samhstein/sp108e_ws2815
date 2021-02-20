@@ -14,11 +14,18 @@ presets with colors work but ymmv with rgb wiring...
 built using https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_light
 and https://github.com/kylezimmerman/pyledshop as a base.
 
+the config flow branch allows setup using the ha add integration, multiple controllers are on
+one card as expected. 
+
+the original branch is the stock, manually configured first cut that needs an entry into configuration.yaml.
+
 ### Installation
 
-Copy this folder to `<config_dir>/custom_components/sp108e_ws2815/`.
+Copy or clone this info `<config_dir>/custom_components/sp108e_ws2815/`.
 
-Add the following entry in your `configuration.yaml`:
+if your using the config flow branch skip, do not add anything to the configuration.yaml.
+
+if your using the master branch. Add the following entry in your `configuration.yaml`:
 
 ```yaml
 # led strip
