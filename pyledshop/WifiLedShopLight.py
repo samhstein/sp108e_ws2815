@@ -188,7 +188,6 @@ class WifiLedShopLight(LightEntity):
     attempts = 0
     while True:
         try:
-            print('in socket send_command', attempts)
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(self._timeout)
             self._sock.connect((self._ip, self._port))
@@ -197,7 +196,7 @@ class WifiLedShopLight(LightEntity):
             self._sock.close()
             return result
         except (socket.timeout, BrokenPipeError):
-            print('in socket exeption....')
+            print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
                 attempts += 1
                 self._sock.close()
