@@ -182,62 +182,36 @@ class WifiLedShopLight(LightEntity):
 
   def send_command(self, command, data=[]):
     result = None
-    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self._sock.settimeout(self._timeout)
-    self._sock.connect((self._ip, self._port))
-
     min_data_len = 3
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
-    self.send_bytes(raw_data)
-    try:
-        result = self._sock.recv(1024)
-    except (socket.timeout, BrokenPipeError):
-        pass
+    attempts = 0
+    while True:
+        try:
+            print('in socket send_command', attempts)
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.settimeout(self._timeout)
+            self._sock.connect((self._ip, self._port))
+            self._sock.sendall(bytes(raw_data))
+            result = self._sock.recv(1024)
+            self._sock.close()
+            return result
+        except (socket.timeout, BrokenPipeError):
+            print('in socket exeption....')
+            if (attempts < self._retries):
+                attempts += 1
+                self._sock.close()
+                self._sock.connect((self._ip, self._port))
+            else:
+                raise
 
-    self._sock.close()
     return result
 
-
-  def send_bytes(self, data):
-    """
-    Helper method to send raw bytes directly to the controller
-
-    Mostly for internal use, prefer the specific functions where possible
-    """
-    raw_data = bytes(data)
-
-    attempts = 0
-    while True:
-      try:
-        self._sock.sendall(raw_data)
-        return
-      except (socket.timeout, BrokenPipeError):
-        print('in socket exeption....')
-        if (attempts < self._retries):
-          attempts += 1
-          self._sock.close()
-          self._sock.connect((self._ip, self._port))
-        else:
-          raise
-
   def update(self):
-    attempts = 0
-    while True:
-      try:
-        # Send the request for sync data
-        response = self.send_command(Command.SYNC, [])
-
-        # Extract the state data
-        state = bytearray(response)
-        self._state.update_from_sync(state)
-        return
-      except (socket.timeout, BrokenPipeError):
-        # When there is an error with the socket, close the connection and connect again
-        if attempts < self._retries:
-          attempts += 1
-        else:
-          raise
+      response = self.send_command(Command.SYNC, [])
+      state = bytearray(response)
+      self._state.update_from_sync(state)
+      return
 
   def __repr__(self):
     return f"""WikiLedShopLight @ {self._ip}:{self._port}
