@@ -199,8 +199,8 @@ class WifiLedShopLight(LightEntity):
             print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
                 attempts += 1
-                self._sock.close()
-                self._sock.connect((self._ip, self._port))
+                if self._sock:
+                    self._sock.close()
             else:
                 raise
 
