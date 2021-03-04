@@ -26,7 +26,7 @@ class WifiLedShopLight(LightEntity):
   A Wifi LED Shop Light
   """
 
-  def __init__(self, ip, name, port = 8189, timeout = 1, retries = 5):
+  def __init__(self, ip, name, port = 8189, timeout = 2, retries = 5):
     """
     Creates a new Wifi LED Shop light
 
