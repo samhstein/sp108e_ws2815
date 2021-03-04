@@ -67,6 +67,7 @@ class WifiLedShopLight(LightEntity):
 
     :param brightness: An int describing the brightness (0 to 255, where 255 is the brightest)
     """
+    print('set brightness: ', brightness)
     brightness = clamp(brightness)
     self._state.brightness = brightness
     self.send_command(Command.SET_BRIGHTNESS, [int(brightness)])
@@ -135,15 +136,10 @@ class WifiLedShopLight(LightEntity):
         self.set_effect(kwargs[ATTR_EFFECT])
         return
 
-    if self._state.is_on:
-        print('already on')
-        return
-
-    self.toggle()
-
+    if not self._state.is_on:
+        self.toggle()
 
   def turn_off(self):
-    self.toggle()
     if self._state.is_on:
         self.toggle()
     else:
@@ -192,16 +188,18 @@ class WifiLedShopLight(LightEntity):
             self._sock.settimeout(self._timeout)
             self._sock.connect((self._ip, self._port))
             self._sock.sendall(bytes(raw_data))
-            result = self._sock.recv(1024)
+            if command != command.SET_BRIGHTNESS:
+                result = self._sock.recv(1024)
             self._sock.close()
             return result
         except (socket.timeout, BrokenPipeError):
             print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
                 attempts += 1
-                if self._sock:
-                    self._sock.close()
+    #            if self._sock:
+    #                self._sock.close()
             else:
+                print('break', command)
                 raise
 
     return result
