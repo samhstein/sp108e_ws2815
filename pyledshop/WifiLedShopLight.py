@@ -188,8 +188,10 @@ class WifiLedShopLight(LightEntity):
             self._sock.settimeout(self._timeout)
             self._sock.connect((self._ip, self._port))
             self._sock.sendall(bytes(raw_data))
-            if command != command.SET_BRIGHTNESS:
+            if command == command.GET_ID or command == command.SYNC:
+                print('reading...')
                 result = self._sock.recv(1024)
+                print('reading got it', command, result)
             self._sock.close()
             return result
         except (socket.timeout, BrokenPipeError):
