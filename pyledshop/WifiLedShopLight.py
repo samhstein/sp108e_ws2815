@@ -117,7 +117,7 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
-    print('turn on: ', kwargs)
+    print('turn on: ', self._state, kwargs)
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
@@ -182,29 +182,28 @@ class WifiLedShopLight(LightEntity):
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     attempts = 0
+    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self._sock.settimeout(self._timeout)
     while True:
         try:
-            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._sock.settimeout(self._timeout)
             self._sock.connect((self._ip, self._port))
             self._sock.sendall(bytes(raw_data))
             if command == command.GET_ID or command == command.SYNC:
-                print('reading...')
                 result = self._sock.recv(1024)
-                print('reading got it', command, result)
+
+            self._sock.shutdown(socket.SHUT_RDWR)
             self._sock.close()
+            self._sock = None
             return result
         except (socket.timeout, BrokenPipeError):
             print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
                 attempts += 1
-    #            if self._sock:
-    #                self._sock.close()
+                if self._sock:
+                    self._sock.close()
             else:
                 print('break', command)
                 raise
-
-    return result
 
   def update(self):
       response = self.send_command(Command.SYNC, [])
