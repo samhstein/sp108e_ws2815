@@ -1,5 +1,4 @@
 import socket
-
 from .effects import MONO_EFFECTS, PRESET_EFFECTS
 from .constants import (Command, CommandFlag, MonoEffect)
 from .utils import clamp
@@ -20,6 +19,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 import homeassistant.util.color as color_util
+from pprint import pprint
 
 class WifiLedShopLight(LightEntity):
   """
@@ -117,7 +117,7 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
-    print('turn on', **kwargs)
+    pprint('turn on', **kwargs)
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
@@ -134,7 +134,7 @@ class WifiLedShopLight(LightEntity):
 
     if ATTR_EFFECT in kwargs:
         self.set_effect(kwargs[ATTR_EFFECT])
-        return        
+        return
 
     if not self._state.is_on:
         self.toggle()
