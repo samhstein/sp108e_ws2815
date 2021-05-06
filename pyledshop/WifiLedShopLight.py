@@ -117,27 +117,24 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
-    print('turn on: ', self._state, kwargs)
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
-        return
 
     if ATTR_WHITE_VALUE in kwargs:
         self.set_white(kwargs[ATTR_WHITE_VALUE])
-        return
 
     if ATTR_HS_COLOR in kwargs:
         r,g,b = color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
         self.set_color(r, g, b)
-        return
 
     if ATTR_EFFECT in kwargs:
         self.set_effect(kwargs[ATTR_EFFECT])
-        return
 
     if not self._state.is_on:
         self.toggle()
+    else:
+        print('already on')
 
   def turn_off(self):
     if self._state.is_on:
@@ -183,7 +180,7 @@ class WifiLedShopLight(LightEntity):
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     attempts = 0
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self._sock.settimeout(self._timeout)
+    #self._sock.settimeout(self._timeout)
     while True:
         try:
             self._sock.connect((self._ip, self._port))
