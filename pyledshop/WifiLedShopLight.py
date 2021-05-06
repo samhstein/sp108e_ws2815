@@ -117,19 +117,24 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
+    print('turn on', **kwargs)
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
+        return
 
     if ATTR_WHITE_VALUE in kwargs:
         self.set_white(kwargs[ATTR_WHITE_VALUE])
+        return
 
     if ATTR_HS_COLOR in kwargs:
         r,g,b = color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
         self.set_color(r, g, b)
+        return
 
     if ATTR_EFFECT in kwargs:
         self.set_effect(kwargs[ATTR_EFFECT])
+        return        
 
     if not self._state.is_on:
         self.toggle()
