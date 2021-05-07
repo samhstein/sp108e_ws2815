@@ -19,14 +19,13 @@ from homeassistant.components.light import (
     LightEntity,
 )
 import homeassistant.util.color as color_util
-from pprint import pprint
 
 class WifiLedShopLight(LightEntity):
   """
   A Wifi LED Shop Light
   """
 
-  def __init__(self, ip, name, port = 8189, timeout = 2, retries = 5):
+  def __init__(self, ip, name, port = 8189, timeout = 1, retries = 5):
     """
     Creates a new Wifi LED Shop light
 
@@ -117,7 +116,8 @@ class WifiLedShopLight(LightEntity):
     self.send_command(Command.TOGGLE, [])
 
   def turn_on(self, **kwargs):
-    pprint('turn on', **kwargs)
+    print('in turn on', kwargs, self._state)
+
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
@@ -185,7 +185,8 @@ class WifiLedShopLight(LightEntity):
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     attempts = 0
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #self._sock.settimeout(self._timeout)
+    self._sock.settimeout(self._timeout)
+    print('in send command', command)
     while True:
         try:
             self._sock.connect((self._ip, self._port))
@@ -196,7 +197,6 @@ class WifiLedShopLight(LightEntity):
             self._sock.shutdown(socket.SHUT_RDWR)
             self._sock.close()
             self._sock = None
-            return result
         except (socket.timeout, BrokenPipeError):
             print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
@@ -206,6 +206,9 @@ class WifiLedShopLight(LightEntity):
             else:
                 print('break', command)
                 raise
+
+        return result
+
 
   def update(self):
       response = self.send_command(Command.SYNC, [])
