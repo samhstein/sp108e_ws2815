@@ -186,7 +186,6 @@ class WifiLedShopLight(LightEntity):
     attempts = 0
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self._sock.settimeout(self._timeout)
-    print('in send command', command)
     while True:
         try:
             self._sock.connect((self._ip, self._port))
