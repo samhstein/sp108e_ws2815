@@ -206,8 +206,8 @@ class WifiLedShopLight(LightEntity):
                 print('break', command)
                 raise
 
-         if not (command == command.GET_ID or command == command.SYNC) or result:
-             return result
+        if not (command == command.GET_ID or command == command.SYNC) or result:
+            return result
 
 
   def update(self):
