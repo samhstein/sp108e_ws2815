@@ -127,7 +127,7 @@ class WifiLedShopLight(LightEntity):
         r,g,b = color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
         self.set_color(r, g, b)
         return
-    
+
     if ATTR_WHITE_VALUE in kwargs:
         self.set_white(kwargs[ATTR_WHITE_VALUE])
         return
@@ -184,10 +184,10 @@ class WifiLedShopLight(LightEntity):
     padded_data = data + [0] * (min_data_len - len(data))
     raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
     attempts = 0
-    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self._sock.settimeout(self._timeout)
     while True:
         try:
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._sock.settimeout(self._timeout)
             self._sock.connect((self._ip, self._port))
             self._sock.sendall(bytes(raw_data))
             if command == command.GET_ID or command == command.SYNC:
@@ -206,7 +206,8 @@ class WifiLedShopLight(LightEntity):
                 print('break', command)
                 raise
 
-        return result
+         if not (command == command.GET_ID or command == command.SYNC) or result:
+             return result
 
 
   def update(self):
