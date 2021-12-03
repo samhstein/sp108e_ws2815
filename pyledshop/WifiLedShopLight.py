@@ -19,6 +19,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 import homeassistant.util.color as color_util
+from time import sleep
 
 class WifiLedShopLight(LightEntity):
   """
@@ -112,12 +113,14 @@ class WifiLedShopLight(LightEntity):
     """
     Toggles the state of the light without checking the current state
     """
-    self._state.is_on = not self._state.is_on
+    initial_state = self._state.is_on
     self.send_command(Command.TOGGLE, [])
+    self.update()
+    while initial_state == self._state.is_on:
+        sleep(0.5)
+        self.toggle()
 
   def turn_on(self, **kwargs):
-    print('in turn on', kwargs, self._state)
-
 
     if ATTR_BRIGHTNESS in kwargs:
         self.set_brightness(kwargs[ATTR_BRIGHTNESS])
@@ -196,19 +199,14 @@ class WifiLedShopLight(LightEntity):
             self._sock.shutdown(socket.SHUT_RDWR)
             self._sock.close()
             self._sock = None
+            return result
         except (socket.timeout, BrokenPipeError):
-            print('send_command socket exception: ', attempts)
             if (attempts < self._retries):
                 attempts += 1
                 if self._sock:
                     self._sock.close()
             else:
-                print('break', command)
                 raise
-
-        if not (command == command.GET_ID or command == command.SYNC) or result:
-            return result
-
 
   def update(self):
       response = self.send_command(Command.SYNC, [])
