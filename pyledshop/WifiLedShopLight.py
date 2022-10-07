@@ -15,7 +15,6 @@ from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_EFFECT,
-    SUPPORT_WHITE,
     LightEntity,
 )
 import homeassistant.util.color as color_util
@@ -268,4 +267,4 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def supported_features(self):
-    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_WHITE | SUPPORT_EFFECT)
+    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_EFFECT)
