@@ -8,14 +8,14 @@ from homeassistant.components.light import (
     ATTR_COLOR_TEMP,
     ATTR_EFFECT,
     ATTR_HS_COLOR,
-    ATTR_WHITE_VALUE,
+    ATTR_WHITE,
     EFFECT_COLORLOOP,
     EFFECT_RANDOM,
     PLATFORM_SCHEMA,
     SUPPORT_BRIGHTNESS,
     SUPPORT_COLOR,
     SUPPORT_EFFECT,
-    SUPPORT_WHITE_VALUE,
+    SUPPORT_WHITE,
     LightEntity,
 )
 import homeassistant.util.color as color_util
@@ -131,8 +131,8 @@ class WifiLedShopLight(LightEntity):
         self.set_color(r, g, b)
         return
 
-    if ATTR_WHITE_VALUE in kwargs:
-        self.set_white(kwargs[ATTR_WHITE_VALUE])
+    if ATTR_WHITE in kwargs:
+        self.set_white(kwargs[ATTR_WHITE])
         return
 
     if ATTR_EFFECT in kwargs:
@@ -268,4 +268,4 @@ class WifiLedShopLight(LightEntity):
 
   @property
   def supported_features(self):
-    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_WHITE_VALUE | SUPPORT_EFFECT)
+    return (SUPPORT_COLOR | SUPPORT_BRIGHTNESS | SUPPORT_WHITE | SUPPORT_EFFECT)
