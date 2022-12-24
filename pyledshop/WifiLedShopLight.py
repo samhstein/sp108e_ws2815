@@ -120,28 +120,28 @@ class WifiLedShopLight(LightEntity):
         self.toggle()
 
   def turn_on(self, **kwargs):
+    for k, v in kwargs.items():
+      if k == ATTR_BRIGHTNESS:
+        self.set_brightness(v)
 
-    if ATTR_BRIGHTNESS in kwargs:
-        self.set_brightness(kwargs[ATTR_BRIGHTNESS])
-        return
-
-    if ATTR_HS_COLOR in kwargs:
-        r,g,b = color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
+      elif k == ATTR_HS_COLOR:
+        r, g, b = color_util.color_hs_to_RGB(*v)
         self.set_color(r, g, b)
-        return
 
-    if ATTR_WHITE in kwargs:
-        self.set_white(kwargs[ATTR_WHITE])
-        return
+      # ordered after color so that white will override color. Generally don't do this.
+      elif k == ATTR_WHITE:
+        self.set_white(v)
 
-    if ATTR_EFFECT in kwargs:
-        self.set_effect(kwargs[ATTR_EFFECT])
-        return
+      elif k == ATTR_EFFECT:
+        self.set_effect(v)
+
+      else:
+        print(f"unknown control key: {k}")
 
     if not self._state.is_on:
-        self.toggle()
+      self.toggle()
     else:
-        print('already on')
+      print("already on")
 
   def turn_off(self):
     if self._state.is_on:
