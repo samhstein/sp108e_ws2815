@@ -30,7 +30,7 @@ class WifiLedShopLight(LightEntity):
 
         self._attr_name = name
         self._attr_unique_id = self.send_command(Command.GET_ID, []).decode("utf-8")
-        self._attr_supported_color_modes = [ColorMode.RGB]
+        self._attr_supported_color_modes = {ColorMode.RGB}
         self._attr_color_mode = ColorMode.RGB
         self._attr_supported_features = LightEntityFeature.EFFECT
 
