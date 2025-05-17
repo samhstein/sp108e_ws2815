@@ -11,7 +11,7 @@ async def async_setup_entry(
     """Set up SP108E WS2815 light from a config entry."""
     host = entry.data["host"]
     name = entry.data["name"]
-    config = entry.data
+    config = { **entry.data, **entry.options }
 
     # Construct in executor to avoid blocking the event loop
     light = await hass.async_add_executor_job(WifiLedShopLight, host, name, config)
