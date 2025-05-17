@@ -2,8 +2,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 
-from .const import DOMAIN
-from .effects import MONO_EFFECTS
+from .pyledshop.effects import MONO_EFFECTS
 
 OPTIONS_SCHEMA = vol.Schema({
     vol.Optional("effect", default="Solid (custom color)"): vol.In(list(MONO_EFFECTS)),
