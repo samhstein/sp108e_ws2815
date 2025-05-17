@@ -203,8 +203,9 @@ class WifiLedShopLight(LightEntity):
   
     @property
     def extra_state_attributes(self):
+        r, g, b = self._state.color
         return {
             "speed": self._state.speed,
-            "default_effect": self._default_effect
+            "default_effect": self._default_effect,
+            "current_rgb": f"rgb({r}, {g}, {b})"
         }
-
