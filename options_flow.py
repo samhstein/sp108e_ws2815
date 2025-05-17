@@ -17,10 +17,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        current = self.config_entry.options or self.config_entry.data
+
         return self.async_show_form(
             step_id="init",
-            data_schema=OPTIONS_SCHEMA,
+            data_schema=vol.Schema({
+                vol.Optional("effect", default=current.get("effect", "Solid (custom color)")): vol.In(list(MONO_EFFECTS)),
+                vol.Optional("speed", default=current.get("speed", 255)): vol.All(vol.Coerce(int), vol.Clamp(min=0, max=255)),
+            }),
         )
+
 
 @callback
 def async_get_options_flow(config_entry):
