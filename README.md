@@ -1,24 +1,86 @@
-# sp108e_ws2815
+# SP108E WS2815 LED Controller Integration for Home Assistant
 
-This integration is for the ALITOVE WS2812B WS2811 WS2801 LED WiFi Controller
-https://www.amazon.com/gp/product/B07DDB6JHJ/ref=ppx_yo_dt_b_asin_title_o03_s01?ie=UTF8&psc=1
+This is a custom Home Assistant integration for controlling SP108E-based LED strip controllers like the [ALITOVE SP108E](https://www.amazon.com/gp/product/B07DDB6JHJ/ref=ppx_yo_dt_b_asin_title_o03_s01?ie=UTF8&psc=1) over Wi-Fi.
 
-tested with two controllers so far using a BTF-LIGHTING WS2815 (Upgraded WS2812B) 16.4ft 300
-Pixels Magic Dream Color Individually Addressable RGB LED Flexible Strip Light 5050 SMD Dual
-Signal IP30 Non-Waterproof DC12V Black PCB
-https://www.amazon.com/gp/product/B07LG6J39V/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1
+Tested with:
 
-on / off, color and brightness are supported, mono color effects are good,
-presets with colors work but ymmv with rgb wiring...
+- ✅ SP108E controller in STA mode
+- ✅ BTF-LIGHTING WS2815 (Upgraded WS2812B) LED strip: [Amazon link](https://www.amazon.com/gp/product/B07LG6J39V)
 
-built using https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_light
-and https://github.com/kylezimmerman/pyledshop as a base.
+---
 
-added conifg_flow to support adding devices via the ha ui. host (ip address) and name are required
-for each controller.
+## ✨ Features
 
-### Installation
+- On/Off
+- Brightness control
+- RGB + HS color support
+- Mono-color effects (e.g. solid, breathing, wave, etc.)
+- 100+ preset effects (color chase, fire, rainbow, etc.)
+- Default effect and speed configuration via the UI
+- Supports multiple controllers
 
-Copy or clone into `<config_dir>/custom_components/sp108e_ws2815/`.
+---
 
-if your upgrading remove old configuration.yaml entry.
+## 🧠 Built With
+
+- Based on [example_light](https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_light)
+- LED command logic powered by [kylezimmerman/pyledshop](https://github.com/kylezimmerman/pyledshop)
+- Modern Home Assistant config flow (`config_flow` and `options_flow`) included
+
+---
+
+## 🛠 Installation
+
+### Manual
+
+1. Copy or clone this repository into:
+
+<config_dir>/custom_components/sp108e_ws2815/
+
+2. Restart Home Assistant
+
+3. Go to **Settings → Devices & Services → + Add Integration** → Search for **SP108E WS2815**
+
+### HACS (Recommended)
+
+1. In HACS, go to **Integrations → + Explore & Add Repositories**
+2. Click **"⋮" → Custom repositories**
+3. Add your GitHub repo URL
+4. Select **Category: Integration**
+5. Install and restart Home Assistant
+
+---
+
+## ⚙️ Configuration
+
+This integration supports setting the following:
+
+- `host`: IP address of the controller (required)
+- `name`: Friendly name (required)
+- `default effect`: Any of the mono or preset effects
+- `default speed`: 0–255
+
+Once configured, you can change the default effect and speed later via:
+
+**Settings → Devices & Services → Your Controller → ⋮ → Configure**
+
+---
+
+## 🔄 Upgrading
+
+If upgrading from a version using `configuration.yaml`, remove the old config first. This integration now supports UI-based setup only.
+
+---
+
+## 🙏 Thanks
+
+Built on the shoulders of:
+
+- [@kylezimmerman](https://github.com/kylezimmerman) for `pyledshop`
+- The Home Assistant community and custom integration ecosystem
+
+---
+
+## 💬 Feedback
+
+Feel free to open an issue or pull request if you find bugs or have ideas!
