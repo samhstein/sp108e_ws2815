@@ -1,13 +1,11 @@
 {
   "domain": "sp108e_ws2815",
-  "name": "sp108e_ws2815",
+  "name": "SP108E WS2815 LED Controller",
+  "version": "0.3.0",
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/sp108e_ws2815",
+  "documentation": "https://github.com/samhstein/sp108e_ws2815",
   "requirements": [],
-  "ssdp": [],
-  "zeroconf": [],
-  "homekit": {},
   "dependencies": [],
   "codeowners": ["@samhstein"],
-  "version": "0.2.1"
+  "iot_class": "local_polling"
 }
