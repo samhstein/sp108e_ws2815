@@ -20,8 +20,10 @@ from time import sleep
 class WifiLedShopLight(LightEntity):
     """A Wifi LED Shop Light."""
 
-    def __init__(self, ip, name, port=8189, timeout=1, retries=5):
+    def __init__(self, ip, name, config, port=8189, timeout=1, retries=5):
         self._ip = ip
+        self._default_effect = config.get("effect", "Solid (custom color)")
+        self._default_speed = config.get("speed", 255)
         self._port = port
         self._timeout = timeout
         self._retries = retries
@@ -84,23 +86,32 @@ class WifiLedShopLight(LightEntity):
             self.toggle()
 
     def turn_on(self, **kwargs):
-      for k, v in kwargs.items():
-          if k == ATTR_BRIGHTNESS:
-              self.set_brightness(v)
-          elif k == "rgb_color":  # <--- add this
-              self.set_color(*v)
-          elif k == ATTR_HS_COLOR:
-              r, g, b = color_util.color_hs_to_RGB(*v)
-              self.set_color(r, g, b)
-          elif k == ATTR_WHITE:
-              self.set_white(v)
-          elif k == ATTR_EFFECT:
-              self.set_effect(v)
-          else:
-              print(f"unknown control key: {k}")
+        # Apply defaults if not overridden
+        if ATTR_EFFECT not in kwargs:
+            self.set_effect(self._default_effect)
+        if "speed" not in kwargs:
+            self.set_speed(self._default_speed)
 
-      if not self._state.is_on:
-          self.toggle()
+        for k, v in kwargs.items():
+            if k == ATTR_BRIGHTNESS:
+                self.set_brightness(v)
+            elif k == "rgb_color":
+                self.set_color(*v)
+            elif k == ATTR_HS_COLOR:
+                r, g, b = color_util.color_hs_to_RGB(*v)
+                self.set_color(r, g, b)
+            elif k == ATTR_WHITE:
+                self.set_white(v)
+            elif k == ATTR_EFFECT:
+                self.set_effect(v)
+            elif k == "speed":
+                self.set_speed(v)
+            else:
+                print(f"unknown control key: {k}")
+
+        if not self._state.is_on:
+            self.toggle()
+
 
 
     def turn_off(self, **kwargs):
@@ -189,3 +200,11 @@ class WifiLedShopLight(LightEntity):
             "name": self._attr_name,
             "model": "sp108e",
         }
+  
+    @property
+    def extra_state_attributes(self):
+        return {
+            "speed": self._state.speed,
+            "default_effect": self._default_effect
+        }
+

@@ -13,6 +13,8 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required("host"): str,
     vol.Required("name"): str,
+    vol.Optional("effect", default="Solid (custom color)"): str,
+    vol.Optional("speed", default=255): vol.All(vol.Coerce(int), vol.Clamp(min=0, max=255)),
 })
 
 
@@ -25,7 +27,12 @@ async def validate_input(hass: core.HomeAssistant, data: dict) -> dict:
         _LOGGER.exception("Failed to connect to SP108E controller at %s", data["host"])
         raise CannotConnect from e
 
-    return {"title": data["name"]}
+    return {
+        "title": data["name"],
+        "effect": data["effect"],
+        "speed": data["speed"],
+    }
+
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -53,7 +60,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception during config flow")
             errors["base"] = "unknown"
         else:
-            return self.async_create_entry(title=info["title"], data=user_input)
+            entry_data = {
+                "host": user_input["host"],
+                "name": user_input["name"],
+                "effect": user_input.get("effect", "Solid (custom color)"),
+                "speed": user_input.get("speed", 255),
+            }
+            return self.async_create_entry(title=info["title"], data=entry_data)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
