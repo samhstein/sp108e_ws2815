@@ -1,4 +1,5 @@
 import socket
+import logging
 from .effects import MONO_EFFECTS, PRESET_EFFECTS
 from .constants import Command, CommandFlag
 from .utils import clamp
@@ -15,6 +16,8 @@ from homeassistant.components.light import (
 )
 import homeassistant.util.color as color_util
 from time import sleep
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class WifiLedShopLight(LightEntity):
@@ -147,18 +150,36 @@ class WifiLedShopLight(LightEntity):
                 self._sock.close()
                 self._sock = None
                 return result
-            except (socket.timeout, BrokenPipeError):
+            except (socket.timeout, BrokenPipeError, ConnectionRefusedError, OSError) as e:
                 if attempts < self._retries:
                     attempts += 1
                     if self._sock:
-                        self._sock.close()
+                        try:
+                            self._sock.close()
+                        except:
+                            pass
+                        self._sock = None
                 else:
+                    if self._sock:
+                        try:
+                            self._sock.close()
+                        except:
+                            pass
+                        self._sock = None
                     raise
 
     def update(self):
-        response = self.send_command(Command.SYNC, [])
-        if response:
-            self._state.update_from_sync(bytearray(response))
+        """Update device state by syncing with the device."""
+        try:
+            response = self.send_command(Command.SYNC, [])
+            if response:
+                self._state.update_from_sync(bytearray(response))
+                _LOGGER.debug("Successfully updated device state for %s", self._ip)
+            else:
+                _LOGGER.warning("Empty response from device %s", self._ip)
+        except Exception as e:
+            _LOGGER.error("Failed to update device %s: %s", self._ip, str(e))
+            raise
 
     def __repr__(self):
         return f"""WifiLedShopLight @ {self._ip}:{self._port}

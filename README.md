@@ -18,6 +18,23 @@ Tested with:
 - 100+ preset effects (color chase, fire, rainbow, etc.)
 - Default effect and speed configuration via the UI
 - Supports multiple controllers
+- **Automatic device discovery and reconnection** (v0.6.0+)
+- **Real-time availability tracking** (v0.6.0+)
+
+---
+
+## 🆕 What's New in v0.6.0
+
+### Automatic Device Detection & Reconnection
+
+The integration now automatically detects when your SP108E device comes back online:
+
+- **No more manual restarts**: When you power on a previously offline device, it will automatically become available in Home Assistant within 30 seconds
+- **Smart polling**: The integration polls your device every 30 seconds to check availability
+- **Real-time status**: Devices show as "Available" or "Unavailable" based on actual connectivity
+- **Improved error handling**: Better logging and error recovery for network issues
+
+This solves the common issue where devices wouldn't appear until Home Assistant was restarted.
 
 ---
 
