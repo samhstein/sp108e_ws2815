@@ -1,4 +1,5 @@
 import socket
+import logging
 from .effects import MONO_EFFECTS, PRESET_EFFECTS
 from .constants import Command, CommandFlag
 from .utils import clamp
@@ -16,11 +17,13 @@ from homeassistant.components.light import (
 import homeassistant.util.color as color_util
 from time import sleep
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class WifiLedShopLight(LightEntity):
     """A Wifi LED Shop Light."""
 
-    def __init__(self, ip, name, config, port=8189, timeout=1, retries=5):
+    def __init__(self, ip, name, config, port=8189, timeout=3, retries=5):
         self._ip = ip
         self._default_effect = config.get("effect", "Solid (custom color)")
         self._default_speed = config.get("speed", 255)
@@ -31,12 +34,28 @@ class WifiLedShopLight(LightEntity):
         self._sock = None
 
         self._attr_name = name
-        self._attr_unique_id = self.send_command(Command.GET_ID, []).decode("utf-8")
         self._attr_supported_color_modes = {ColorMode.RGB}
         self._attr_color_mode = ColorMode.RGB
         self._attr_supported_features = LightEntityFeature.EFFECT
 
-        self.update()
+        # Try to get unique_id, but fall back to IP-based ID if connection fails
+        try:
+            id_response = self.send_command(Command.GET_ID, [])
+            if id_response:
+                self._attr_unique_id = id_response.decode("utf-8")
+            else:
+                self._attr_unique_id = f"sp108e_{ip}_{port}"
+        except Exception:
+            # If we can't get the ID, use a fallback based on IP and port
+            self._attr_unique_id = f"sp108e_{ip}_{port}"
+
+        # Try to update state, but don't fail initialization if it doesn't work
+        try:
+            self.update()
+        except Exception:
+            # Initial update failed, but we can still create the entity
+            # It will be updated later when HA polls it
+            pass
 
     def __enter__(self):
         return self
@@ -135,25 +154,55 @@ class WifiLedShopLight(LightEntity):
         padded_data = data + [0] * (min_data_len - len(data))
         raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
         attempts = 0
-        while True:
+        last_exception = None
+        
+        while attempts <= self._retries:
             try:
+                _LOGGER.debug("Attempting to connect to %s:%s (attempt %d/%d)", 
+                             self._ip, self._port, attempts + 1, self._retries + 1)
                 self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self._sock.settimeout(self._timeout)
                 self._sock.connect((self._ip, self._port))
+                _LOGGER.debug("Connected to %s:%s, sending command %s", 
+                             self._ip, self._port, command)
                 self._sock.sendall(bytes(raw_data))
                 if command in [Command.GET_ID, Command.SYNC]:
                     result = self._sock.recv(1024)
+                    _LOGGER.debug("Received %d bytes from device", len(result) if result else 0)
                 self._sock.shutdown(socket.SHUT_RDWR)
                 self._sock.close()
                 self._sock = None
                 return result
-            except (socket.timeout, BrokenPipeError):
+            except (socket.timeout, BrokenPipeError, ConnectionRefusedError, 
+                    ConnectionResetError, OSError, socket.gaierror, socket.herror) as e:
+                last_exception = e
+                _LOGGER.warning("Connection attempt %d/%d failed: %s", 
+                               attempts + 1, self._retries + 1, str(e))
+                if self._sock:
+                    try:
+                        self._sock.close()
+                    except:
+                        pass
+                    self._sock = None
+                
                 if attempts < self._retries:
                     attempts += 1
-                    if self._sock:
-                        self._sock.close()
+                    sleep(0.1 * attempts)  # Exponential backoff
                 else:
-                    raise
+                    # Raise a more informative error
+                    error_msg = f"Failed to connect to {self._ip}:{self._port} after {self._retries + 1} attempts. "
+                    if isinstance(e, ConnectionRefusedError):
+                        error_msg += f"Connection refused - check if device is powered on and port {self._port} is open."
+                    elif isinstance(e, socket.timeout):
+                        error_msg += "Connection timeout - check network connectivity and firewall settings."
+                    elif isinstance(e, (socket.gaierror, socket.herror)):
+                        error_msg += f"DNS/Host resolution error: {str(e)} - verify the IP address is correct."
+                    elif isinstance(e, OSError):
+                        error_msg += f"Network error: {str(e)}"
+                    else:
+                        error_msg += f"Error: {str(e)}"
+                    _LOGGER.error(error_msg)
+                    raise ConnectionError(error_msg) from e
 
     def update(self):
         response = self.send_command(Command.SYNC, [])
