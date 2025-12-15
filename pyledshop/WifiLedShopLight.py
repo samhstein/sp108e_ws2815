@@ -35,6 +35,8 @@ class WifiLedShopLight(LightEntity):
         self._sock = None
         self._hass = None  # Will be set by async_added_to_hass
         self._update_lock = asyncio.Lock()
+        self._brightness_task = None  # For debouncing brightness changes
+        self._command_lock = asyncio.Lock()  # Prevent concurrent commands
 
         self._attr_name = name
         self._attr_supported_color_modes = {ColorMode.RGB}
@@ -63,23 +65,22 @@ class WifiLedShopLight(LightEntity):
     def set_color(self, r=0, g=0, b=0):
         r, g, b = clamp(r), clamp(g), clamp(b)
         self.send_command(Command.SET_COLOR, [r, g, b])
-        # Update state after successful command
-        self._state.color = (r, g, b)
+        # Don't update state optimistically - let sync handle it
 
     def set_brightness(self, brightness=0):
         brightness = clamp(brightness)
         self.send_command(Command.SET_BRIGHTNESS, [brightness])
-        self._state.brightness = brightness
+        # Don't update state optimistically - let sync handle it
 
     def set_white(self, white=0):
         white = clamp(white)
         self.send_command(Command.SET_WHITE, [white])
-        self._state.white = white
+        # Don't update state optimistically - let sync handle it
 
     def set_speed(self, speed=0):
         speed = clamp(speed)
         self.send_command(Command.SET_SPEED, [speed])
-        self._state.speed = speed
+        # Don't update state optimistically - let sync handle it
 
     def set_effect(self, effect):
         both = {**MONO_EFFECTS, **PRESET_EFFECTS}
@@ -90,7 +91,7 @@ class WifiLedShopLight(LightEntity):
         # Don't clamp preset values - they can be 0-212
         # MonoEffect values are 205-212, PRESET_EFFECTS are 0-195
         self.send_command(Command.SET_PRESET, [preset])
-        self._state.mode = preset
+        # Don't update state optimistically - let sync handle it
 
     def set_custom(self, custom):
         custom = clamp(custom, 1, 12)
@@ -100,62 +101,120 @@ class WifiLedShopLight(LightEntity):
     def _toggle_sync(self):
         """Toggle the light state (synchronous)."""
         self.send_command(Command.TOGGLE, [])
-        # Invert state optimistically - will be corrected by next update
-        self._state.is_on = not self._state.is_on
+        # Don't update state optimistically - always verify with sync
+
+    async def _sync_state(self):
+        """Force sync state from device."""
+        await self.async_update()
 
     async def async_turn_on(self, **kwargs):
         """Turn on the light with optional parameters (async)."""
         if self._hass is None:
             return
         
-        # Only apply defaults if turning on from off state
-        # If already on and just changing color/effect, don't override
-        was_off = not self._state.is_on
-        
-        # If turning on from off, apply defaults first
-        if was_off:
-            if ATTR_EFFECT not in kwargs:
-                await self._hass.async_add_executor_job(
-                    self.set_effect, self._default_effect
-                )
-            if "speed" not in kwargs:
-                await self._hass.async_add_executor_job(
-                    self.set_speed, self._default_speed
-                )
-        
-        # Process all provided parameters
-        for k, v in kwargs.items():
-            if k == ATTR_BRIGHTNESS:
-                await self._hass.async_add_executor_job(self.set_brightness, v)
-            elif k == "rgb_color":
-                await self._hass.async_add_executor_job(self.set_color, *v)
-            elif k == ATTR_HS_COLOR:
-                r, g, b = color_util.color_hs_to_RGB(*v)
-                await self._hass.async_add_executor_job(self.set_color, r, g, b)
-            elif k == ATTR_WHITE:
-                await self._hass.async_add_executor_job(self.set_white, v)
-            elif k == ATTR_EFFECT:
-                await self._hass.async_add_executor_job(self.set_effect, v)
-            elif k == "speed":
-                await self._hass.async_add_executor_job(self.set_speed, v)
-            else:
-                _LOGGER.debug("Unknown control key: %s", k)
+        async with self._command_lock:
+            # Always sync state first to know actual device state
+            await self._sync_state()
+            
+            # Only apply defaults if turning on from off state
+            # If already on and just changing color/effect, don't override
+            was_off = not self._state.is_on
+            
+            # If turning on from off, apply defaults first
+            if was_off:
+                if ATTR_EFFECT not in kwargs:
+                    await self._hass.async_add_executor_job(
+                        self.set_effect, self._default_effect
+                    )
+                if "speed" not in kwargs:
+                    await self._hass.async_add_executor_job(
+                        self.set_speed, self._default_speed
+                    )
+            
+            # Process all provided parameters
+            # Handle brightness separately for debouncing (only when it's the only parameter)
+            brightness_value = kwargs.get(ATTR_BRIGHTNESS)
+            other_params = {k: v for k, v in kwargs.items() if k != ATTR_BRIGHTNESS}
+            
+            # If brightness is the only parameter, use debouncing (slider dragging)
+            # Otherwise apply immediately (click or combined with other params)
+            use_brightness_debounce = brightness_value is not None and len(other_params) == 0 and not was_off
+            
+            # Process non-brightness parameters immediately
+            for k, v in other_params.items():
+                if k == "rgb_color":
+                    await self._hass.async_add_executor_job(self.set_color, *v)
+                elif k == ATTR_HS_COLOR:
+                    r, g, b = color_util.color_hs_to_RGB(*v)
+                    await self._hass.async_add_executor_job(self.set_color, r, g, b)
+                elif k == ATTR_WHITE:
+                    await self._hass.async_add_executor_job(self.set_white, v)
+                elif k == ATTR_EFFECT:
+                    await self._hass.async_add_executor_job(self.set_effect, v)
+                elif k == "speed":
+                    await self._hass.async_add_executor_job(self.set_speed, v)
+                else:
+                    _LOGGER.debug("Unknown control key: %s", k)
+            
+            # Handle brightness
+            if brightness_value is not None:
+                if use_brightness_debounce:
+                    # Cancel any pending brightness operation
+                    if self._brightness_task and not self._brightness_task.done():
+                        self._brightness_task.cancel()
+                        try:
+                            await self._brightness_task
+                        except asyncio.CancelledError:
+                            pass
+                    
+                    # Optimistic update for immediate UI feedback
+                    self._state.brightness = brightness_value
+                    self.async_write_ha_state()
+                    
+                    # Debounce brightness changes (for slider dragging)
+                    async def set_brightness_debounced():
+                        try:
+                            await asyncio.sleep(0.2)  # 200ms debounce
+                            await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
+                            await self._sync_state()
+                        except asyncio.CancelledError:
+                            pass
+                    
+                    self._brightness_task = asyncio.create_task(set_brightness_debounced())
+                else:
+                    # Apply immediately (click or combined with other params)
+                    await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
 
-        # Turn on if it was off
-        if was_off:
-            await self._hass.async_add_executor_job(self._toggle_sync)
-        
-        # Schedule an update to get the actual state
-        await self.async_update()
+            # Turn on if it was off
+            if was_off:
+                await self._hass.async_add_executor_job(self._toggle_sync)
+            
+            # Always sync state after operations to get actual device state
+            await self._sync_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn off the light (async)."""
         if self._hass is None:
             return
-        if self._state.is_on:
-            await self._hass.async_add_executor_job(self._toggle_sync)
-            # Schedule an update to get the actual state
-            await self.async_update()
+        
+        async with self._command_lock:
+            # Always sync state first to know actual device state
+            await self._sync_state()
+            
+            if self._state.is_on:
+                await self._hass.async_add_executor_job(self._toggle_sync)
+                # Always sync state after toggle to verify it worked
+                await self._sync_state()
+                
+                # If still on after toggle, try again (device might be slow)
+                if self._state.is_on:
+                    await asyncio.sleep(0.2)
+                    await self._sync_state()
+                    if self._state.is_on:
+                        _LOGGER.warning("Device did not turn off after toggle, trying again")
+                        await self._hass.async_add_executor_job(self._toggle_sync)
+                        await asyncio.sleep(0.2)
+                        await self._sync_state()
 
     def set_segments(self, segments):
         self.send_command(Command.SET_SEGMENT_COUNT, [segments])
@@ -295,7 +354,9 @@ class WifiLedShopLight(LightEntity):
     def extra_state_attributes(self):
         r, g, b = self._state.color
         return {
+            "brightness": self._state.brightness,
             "speed": self._state.speed,
             "default_effect": self._default_effect,
-            "current_rgb": f"rgb({r}, {g}, {b})"
+            "current_rgb": f"rgb({r}, {g}, {b})",
+            "white_value": self._state.white
         }
