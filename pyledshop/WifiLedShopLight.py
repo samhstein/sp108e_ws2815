@@ -65,12 +65,14 @@ class WifiLedShopLight(LightEntity):
     def set_color(self, r=0, g=0, b=0):
         r, g, b = clamp(r), clamp(g), clamp(b)
         self.send_command(Command.SET_COLOR, [r, g, b])
-        # Don't update state optimistically - let sync handle it
+        # Update state optimistically for immediate feedback (like effects)
+        self._state.color = (r, g, b)
 
     def set_brightness(self, brightness=0):
         brightness = clamp(brightness)
         self.send_command(Command.SET_BRIGHTNESS, [brightness])
-        # Don't update state optimistically - let sync handle it
+        # Update state optimistically for immediate feedback (like effects)
+        self._state.brightness = brightness
 
     def set_white(self, white=0):
         white = clamp(white)
@@ -82,7 +84,7 @@ class WifiLedShopLight(LightEntity):
         self.send_command(Command.SET_SPEED, [speed])
         # Don't update state optimistically - let sync handle it
 
-    def set_effect(self, effect):
+    def set_effect(self, effect, brightness=None):
         both = {**MONO_EFFECTS, **PRESET_EFFECTS}
         if effect not in both:
             _LOGGER.warning("Unknown effect: %s", effect)
@@ -91,7 +93,11 @@ class WifiLedShopLight(LightEntity):
         # Don't clamp preset values - they can be 0-212
         # MonoEffect values are 205-212, PRESET_EFFECTS are 0-195
         self.send_command(Command.SET_PRESET, [preset])
-        # Don't update state optimistically - let sync handle it
+        # Update state optimistically for immediate feedback
+        self._state.mode = preset
+        # If brightness is provided with effect, set it too
+        if brightness is not None:
+            self.set_brightness(brightness)
 
     def set_custom(self, custom):
         custom = clamp(custom, 1, 12)
@@ -101,7 +107,8 @@ class WifiLedShopLight(LightEntity):
     def _toggle_sync(self):
         """Toggle the light state (synchronous)."""
         self.send_command(Command.TOGGLE, [])
-        # Don't update state optimistically - always verify with sync
+        # Update state optimistically for immediate feedback (like effects)
+        self._state.is_on = not self._state.is_on
 
     async def _sync_state(self):
         """Force sync state from device."""
@@ -113,11 +120,7 @@ class WifiLedShopLight(LightEntity):
             return
         
         async with self._command_lock:
-            # Always sync state first to know actual device state
-            await self._sync_state()
-            
-            # Only apply defaults if turning on from off state
-            # If already on and just changing color/effect, don't override
+            # Check current state (optimistic, like effects do)
             was_off = not self._state.is_on
             
             # If turning on from off, apply defaults first
@@ -140,19 +143,29 @@ class WifiLedShopLight(LightEntity):
             # Otherwise apply immediately (click or combined with other params)
             use_brightness_debounce = brightness_value is not None and len(other_params) == 0 and not was_off
             
-            # Process non-brightness parameters immediately
+            # Process non-brightness parameters immediately (like effects)
             for k, v in other_params.items():
                 if k == "rgb_color":
                     await self._hass.async_add_executor_job(self.set_color, *v)
+                    self.async_write_ha_state()
                 elif k == ATTR_HS_COLOR:
                     r, g, b = color_util.color_hs_to_RGB(*v)
                     await self._hass.async_add_executor_job(self.set_color, r, g, b)
+                    self.async_write_ha_state()
                 elif k == ATTR_WHITE:
                     await self._hass.async_add_executor_job(self.set_white, v)
+                    self.async_write_ha_state()
                 elif k == ATTR_EFFECT:
-                    await self._hass.async_add_executor_job(self.set_effect, v)
+                    # If brightness is also provided (and not debounced), set it with the effect
+                    effect_brightness = brightness_value if (brightness_value is not None and not use_brightness_debounce) else None
+                    if effect_brightness is not None:
+                        await self._hass.async_add_executor_job(self.set_effect, v, effect_brightness)
+                    else:
+                        await self._hass.async_add_executor_job(self.set_effect, v, None)
+                    self.async_write_ha_state()
                 elif k == "speed":
                     await self._hass.async_add_executor_job(self.set_speed, v)
+                    self.async_write_ha_state()
                 else:
                     _LOGGER.debug("Unknown control key: %s", k)
             
@@ -176,7 +189,8 @@ class WifiLedShopLight(LightEntity):
                         try:
                             await asyncio.sleep(0.2)  # 200ms debounce
                             await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
-                            await self._sync_state()
+                            # Update UI after debounced command
+                            self.async_write_ha_state()
                         except asyncio.CancelledError:
                             pass
                     
@@ -184,13 +198,12 @@ class WifiLedShopLight(LightEntity):
                 else:
                     # Apply immediately (click or combined with other params)
                     await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
+                    self.async_write_ha_state()
 
             # Turn on if it was off
             if was_off:
                 await self._hass.async_add_executor_job(self._toggle_sync)
-            
-            # Always sync state after operations to get actual device state
-            await self._sync_state()
+                self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn off the light (async)."""
@@ -198,23 +211,10 @@ class WifiLedShopLight(LightEntity):
             return
         
         async with self._command_lock:
-            # Always sync state first to know actual device state
-            await self._sync_state()
-            
+            # Check state optimistically (like effects)
             if self._state.is_on:
                 await self._hass.async_add_executor_job(self._toggle_sync)
-                # Always sync state after toggle to verify it worked
-                await self._sync_state()
-                
-                # If still on after toggle, try again (device might be slow)
-                if self._state.is_on:
-                    await asyncio.sleep(0.2)
-                    await self._sync_state()
-                    if self._state.is_on:
-                        _LOGGER.warning("Device did not turn off after toggle, trying again")
-                        await self._hass.async_add_executor_job(self._toggle_sync)
-                        await asyncio.sleep(0.2)
-                        await self._sync_state()
+                self.async_write_ha_state()
 
     def set_segments(self, segments):
         self.send_command(Command.SET_SEGMENT_COUNT, [segments])
@@ -353,10 +353,14 @@ class WifiLedShopLight(LightEntity):
     @property
     def extra_state_attributes(self):
         r, g, b = self._state.color
+        both = {**MONO_EFFECTS, **PRESET_EFFECTS}
+        current_effect = next((k for k, v in both.items() if v == self._state.mode), None)
         return {
             "brightness": self._state.brightness,
+            "effect": current_effect,
             "speed": self._state.speed,
             "default_effect": self._default_effect,
             "current_rgb": f"rgb({r}, {g}, {b})",
             "white_value": self._state.white
         }
+
