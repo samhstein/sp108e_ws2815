@@ -9,6 +9,9 @@ from .WifiLedShopLightState import WifiLedShopLightState
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_BRIGHTNESS_PCT,
+    ATTR_BRIGHTNESS_STEP,
+    ATTR_BRIGHTNESS_STEP_PCT,
     ATTR_HS_COLOR,
     ATTR_WHITE,
     ATTR_EFFECT,
@@ -185,13 +188,45 @@ class WifiLedShopLight(LightEntity):
                     )
             
             # Process all provided parameters
-            # Handle brightness separately for debouncing (only when it's the only parameter)
-            brightness_value = kwargs.get(ATTR_BRIGHTNESS)
-            other_params = {k: v for k, v in kwargs.items() if k != ATTR_BRIGHTNESS}
+            # Handle brightness separately (including *_pct and *_step variants)
+            current_brightness = (
+                self._desired_brightness
+                if self._desired_brightness is not None
+                else self._state.brightness
+            )
+
+            brightness_value = None
+            if ATTR_BRIGHTNESS in kwargs and kwargs[ATTR_BRIGHTNESS] is not None:
+                brightness_value = kwargs[ATTR_BRIGHTNESS]
+            elif ATTR_BRIGHTNESS_PCT in kwargs and kwargs[ATTR_BRIGHTNESS_PCT] is not None:
+                brightness_value = int(255 * kwargs[ATTR_BRIGHTNESS_PCT] / 100)
+            elif ATTR_BRIGHTNESS_STEP in kwargs and kwargs[ATTR_BRIGHTNESS_STEP] is not None:
+                brightness_value = clamp(current_brightness + kwargs[ATTR_BRIGHTNESS_STEP])
+            elif (
+                ATTR_BRIGHTNESS_STEP_PCT in kwargs
+                and kwargs[ATTR_BRIGHTNESS_STEP_PCT] is not None
+            ):
+                delta = int(255 * kwargs[ATTR_BRIGHTNESS_STEP_PCT] / 100)
+                brightness_value = clamp(current_brightness + delta)
+
+            # Remove all brightness-related keys from other params
+            other_params = {
+                k: v
+                for k, v in kwargs.items()
+                if k
+                not in (
+                    ATTR_BRIGHTNESS,
+                    ATTR_BRIGHTNESS_PCT,
+                    ATTR_BRIGHTNESS_STEP,
+                    ATTR_BRIGHTNESS_STEP_PCT,
+                )
+            }
             
             # If brightness is the only parameter, use debouncing (slider dragging)
             # Otherwise apply immediately (click or combined with other params)
-            use_brightness_debounce = brightness_value is not None and len(other_params) == 0 and not was_off
+            use_brightness_debounce = (
+                brightness_value is not None and len(other_params) == 0 and not was_off
+            )
             
             # Process non-brightness parameters immediately (like effects)
             for k, v in other_params.items():
