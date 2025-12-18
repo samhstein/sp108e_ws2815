@@ -265,13 +265,26 @@ class WifiLedShopLight(LightEntity):
                     if (brightness_value is not None and not use_brightness_debounce)
                     else None
                 )
-                await self._hass.async_add_executor_job(
-                    self.set_effect, effect_to_apply, effect_brightness
-                )
-                # Give the controller a moment to apply the new effect before
-                # we start sending color/brightness updates. This mirrors the
-                # behavior of the mobile app, which spaces commands slightly.
-                await asyncio.sleep(0.1)
+                # If we are turning the light on from OFF and the caller is only
+                # changing the preset (no rgb/hs color), the controller is prone
+                # to ignore a single preset command. In that specific case we
+                # apply the effect twice with a short delay, mimicking two user
+                # presses in the mobile app. For all other cases we apply it
+                # once as usual.
+                if (not is_on) and (explicit_effect is not None) and (not has_rgb):
+                    for _ in range(2):
+                        await self._hass.async_add_executor_job(
+                            self.set_effect, effect_to_apply, effect_brightness
+                        )
+                        await asyncio.sleep(0.12)
+                else:
+                    await self._hass.async_add_executor_job(
+                        self.set_effect, effect_to_apply, effect_brightness
+                        )
+                    # Give the controller a moment to apply the new effect before
+                    # we start sending color/brightness updates. This mirrors the
+                    # behavior of the mobile app, which spaces commands slightly.
+                    await asyncio.sleep(0.1)
                 self.async_write_ha_state()
 
             # Process non-brightness, non-effect parameters immediately
