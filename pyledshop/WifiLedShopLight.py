@@ -185,20 +185,26 @@ class WifiLedShopLight(LightEntity):
         """Turn on the light with optional parameters (async)."""
         if self._hass is None:
             return
-        
+
         async with self._command_lock:
-            # Check current state (use desired state if available, otherwise sync)
+            # 1) Determine current on/off state from device/desired state
             if self._desired_state is None:
                 await self._sync_state()
-            was_off = not (
-                self._desired_state if self._desired_state is not None else self._state.is_on
+            is_on = (
+                self._desired_state
+                if self._desired_state is not None
+                else self._state.is_on
             )
-            
-            # Set desired state as source of truth
-            self._desired_state = True
-            
-            # Process all provided parameters
-            # Handle brightness separately (including *_pct and *_step variants)
+
+            # 2) If off, turn on first so subsequent commands are applied while on
+            if not is_on:
+                await self._hass.async_add_executor_job(self._toggle_sync, True)
+                self._desired_state = True
+                self._state.is_on = True
+                self.async_write_ha_state()
+
+            # 3) Process all provided parameters
+            #    Handle brightness separately (including *_pct and *_step variants)
             current_brightness = (
                 self._desired_brightness
                 if self._desired_brightness is not None
@@ -235,7 +241,7 @@ class WifiLedShopLight(LightEntity):
             # If brightness is the only parameter, use debouncing (slider dragging)
             # Otherwise apply immediately (click or combined with other params)
             use_brightness_debounce = (
-                brightness_value is not None and len(other_params) == 0 and not was_off
+                brightness_value is not None and len(other_params) == 0 and self._state.is_on
             )
 
             # Decide which effect to apply:
@@ -250,7 +256,7 @@ class WifiLedShopLight(LightEntity):
                 effect_to_apply = explicit_effect
             elif has_rgb:
                 effect_to_apply = "Solid (custom color)"
-            elif was_off:
+            elif not is_on:
                 effect_to_apply = self._default_effect
 
             if effect_to_apply is not None:
@@ -281,14 +287,6 @@ class WifiLedShopLight(LightEntity):
                     self.async_write_ha_state()
                 else:
                     _LOGGER.debug("Unknown control key: %s", k)
-            
-            # If we turned the light on from off and no explicit speed was provided,
-            # apply the configured default speed.
-            if was_off and "speed" not in kwargs:
-                await self._hass.async_add_executor_job(
-                    self.set_speed, self._default_speed
-                )
-                self.async_write_ha_state()
 
             # Handle brightness
             if brightness_value is not None:
@@ -320,17 +318,11 @@ class WifiLedShopLight(LightEntity):
                     # Apply immediately (click or combined with other params)
                     await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
                     self.async_write_ha_state()
-            
-            # Finally, if the light was off when we started, toggle it on *after*
-            # effect/color/speed/brightness have been applied so the new state
-            # is what shows when the strip turns on.
-            if was_off:
-                await self._hass.async_add_executor_job(self._toggle_sync, True)
-                self.async_write_ha_state()
-            else:
-                # Already on, just ensure state matches desired on-state
-                self._state.is_on = True
-                self.async_write_ha_state()
+
+            # Ensure internal state reflects on
+            self._desired_state = True
+            self._state.is_on = True
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn off the light (async)."""
