@@ -268,6 +268,10 @@ class WifiLedShopLight(LightEntity):
                 await self._hass.async_add_executor_job(
                     self.set_effect, effect_to_apply, effect_brightness
                 )
+                # Give the controller a moment to apply the new effect before
+                # we start sending color/brightness updates. This mirrors the
+                # behavior of the mobile app, which spaces commands slightly.
+                await asyncio.sleep(0.1)
                 self.async_write_ha_state()
 
             # Process non-brightness, non-effect parameters immediately
