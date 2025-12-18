@@ -71,11 +71,33 @@ class WifiLedShopLight(LightEntity):
 
     def set_color(self, r=0, g=0, b=0):
         r, g, b = clamp(r), clamp(g), clamp(b)
+        target = (r, g, b)
+
+        # Send the color command once
         self.send_command(Command.SET_COLOR, [r, g, b])
-        # Set as source of truth - this is what we want
-        self._desired_color = (r, g, b)
-        # Update state optimistically for immediate feedback
-        self._state.color = (r, g, b)
+        self._desired_color = target
+        self._state.color = target
+
+        # Best-effort verification: read back state once and, if the color
+        # does not match what we requested, resend the command a second time.
+        try:
+            response = self.send_command(Command.SYNC, [])
+            if response:
+                verify_state = WifiLedShopLightState()
+                verify_state.update_from_sync(bytearray(response))
+                if verify_state.color != target:
+                    _LOGGER.debug(
+                        "Color verification mismatch (got %s, expected %s); resending",
+                        verify_state.color,
+                        target,
+                    )
+                    self.send_command(Command.SET_COLOR, [r, g, b])
+                    self._desired_color = target
+                    self._state.color = target
+        except Exception as e:
+            # If verification fails (timeout, etc.), don't break the flow –
+            # we already sent the color command once.
+            _LOGGER.debug("Color verification failed: %s", e)
 
     def set_brightness(self, brightness=0):
         brightness = clamp(brightness)
@@ -168,24 +190,12 @@ class WifiLedShopLight(LightEntity):
             # Check current state (use desired state if available, otherwise sync)
             if self._desired_state is None:
                 await self._sync_state()
-            was_off = not (self._desired_state if self._desired_state is not None else self._state.is_on)
+            was_off = not (
+                self._desired_state if self._desired_state is not None else self._state.is_on
+            )
             
             # Set desired state as source of truth
             self._desired_state = True
-            
-            # Turn on first if it was off (needed for colors/effects to work)
-            if was_off:
-                await self._hass.async_add_executor_job(self._toggle_sync, True)
-                self.async_write_ha_state()
-                # Apply defaults after turning on
-                if ATTR_EFFECT not in kwargs:
-                    await self._hass.async_add_executor_job(
-                        self.set_effect, self._default_effect
-                    )
-                if "speed" not in kwargs:
-                    await self._hass.async_add_executor_job(
-                        self.set_speed, self._default_speed
-                    )
             
             # Process all provided parameters
             # Handle brightness separately (including *_pct and *_step variants)
@@ -272,6 +282,14 @@ class WifiLedShopLight(LightEntity):
                 else:
                     _LOGGER.debug("Unknown control key: %s", k)
             
+            # If we turned the light on from off and no explicit speed was provided,
+            # apply the configured default speed.
+            if was_off and "speed" not in kwargs:
+                await self._hass.async_add_executor_job(
+                    self.set_speed, self._default_speed
+                )
+                self.async_write_ha_state()
+
             # Handle brightness
             if brightness_value is not None:
                 if use_brightness_debounce:
@@ -302,9 +320,15 @@ class WifiLedShopLight(LightEntity):
                     # Apply immediately (click or combined with other params)
                     await self._hass.async_add_executor_job(self.set_brightness, brightness_value)
                     self.async_write_ha_state()
-
-            # Update state to reflect desired state if already on
-            if not was_off:
+            
+            # Finally, if the light was off when we started, toggle it on *after*
+            # effect/color/speed/brightness have been applied so the new state
+            # is what shows when the strip turns on.
+            if was_off:
+                await self._hass.async_add_executor_job(self._toggle_sync, True)
+                self.async_write_ha_state()
+            else:
+                # Already on, just ensure state matches desired on-state
                 self._state.is_on = True
                 self.async_write_ha_state()
 
