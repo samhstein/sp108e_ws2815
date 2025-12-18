@@ -221,14 +221,40 @@ class WifiLedShopLight(LightEntity):
                     ATTR_BRIGHTNESS_STEP_PCT,
                 )
             }
-            
+
             # If brightness is the only parameter, use debouncing (slider dragging)
             # Otherwise apply immediately (click or combined with other params)
             use_brightness_debounce = (
                 brightness_value is not None and len(other_params) == 0 and not was_off
             )
-            
-            # Process non-brightness parameters immediately (like effects)
+
+            # Decide which effect to apply:
+            # - If an explicit effect was provided, use it
+            # - Else, if an RGB/HS color was provided, force Solid (custom color)
+            # - Else, if we just turned the light on, use the configured default effect
+            has_rgb = "rgb_color" in other_params or ATTR_HS_COLOR in other_params
+            explicit_effect = other_params.pop(ATTR_EFFECT, None)
+
+            effect_to_apply = None
+            if explicit_effect is not None:
+                effect_to_apply = explicit_effect
+            elif has_rgb:
+                effect_to_apply = "Solid (custom color)"
+            elif was_off:
+                effect_to_apply = self._default_effect
+
+            if effect_to_apply is not None:
+                effect_brightness = (
+                    brightness_value
+                    if (brightness_value is not None and not use_brightness_debounce)
+                    else None
+                )
+                await self._hass.async_add_executor_job(
+                    self.set_effect, effect_to_apply, effect_brightness
+                )
+                self.async_write_ha_state()
+
+            # Process non-brightness, non-effect parameters immediately
             for k, v in other_params.items():
                 if k == "rgb_color":
                     await self._hass.async_add_executor_job(self.set_color, *v)
@@ -239,14 +265,6 @@ class WifiLedShopLight(LightEntity):
                     self.async_write_ha_state()
                 elif k == ATTR_WHITE:
                     await self._hass.async_add_executor_job(self.set_white, v)
-                    self.async_write_ha_state()
-                elif k == ATTR_EFFECT:
-                    # If brightness is also provided (and not debounced), set it with the effect
-                    effect_brightness = brightness_value if (brightness_value is not None and not use_brightness_debounce) else None
-                    if effect_brightness is not None:
-                        await self._hass.async_add_executor_job(self.set_effect, v, effect_brightness)
-                    else:
-                        await self._hass.async_add_executor_job(self.set_effect, v, None)
                     self.async_write_ha_state()
                 elif k == "speed":
                     await self._hass.async_add_executor_job(self.set_speed, v)
