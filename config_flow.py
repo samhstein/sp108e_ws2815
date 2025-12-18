@@ -21,11 +21,20 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
 async def validate_input(hass: core.HomeAssistant, data: dict) -> dict:
     """Validate the user input allows us to connect to the controller."""
     try:
-        light = await hass.async_add_executor_job(WifiLedShopLight, data["host"], data["name"])
+        config = {
+            "effect": data.get("effect", "Solid (custom color)"),
+            "speed": data.get("speed", 255),
+        }
+        light = await hass.async_add_executor_job(
+            WifiLedShopLight, data["host"], data["name"], config
+        )
         await hass.async_add_executor_job(light.update)
+    except ConnectionError as e:
+        _LOGGER.error("Failed to connect to SP108E controller at %s: %s", data["host"], str(e))
+        raise CannotConnect(str(e)) from e
     except Exception as e:
         _LOGGER.exception("Failed to connect to SP108E controller at %s", data["host"])
-        raise CannotConnect from e
+        raise CannotConnect(f"Connection failed: {str(e)}") from e
 
     return {
         "title": data["name"],
@@ -75,6 +84,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
+    
+    def __init__(self, message="Failed to connect to the device"):
+        super().__init__(message)
+        self.message = message
 
 
 class InvalidAuth(exceptions.HomeAssistantError):

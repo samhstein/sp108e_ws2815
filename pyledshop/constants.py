@@ -50,14 +50,14 @@ class MonoEffect(IntEnum):
 
   To be used with WifiLedShopLight.set_preset()
   """
-  SOLID = 211,
-  BREATHING = 206,
-  METEOR = 205,
-  FLOW = 208,
-  WAVE = 209,
-  FLASH = 210,
-  STACK = 207,
-  CATCHUP = 212,
+  SOLID = 211
+  BREATHING = 206
+  METEOR = 205
+  FLOW = 208
+  WAVE = 209
+  FLASH = 210
+  STACK = 207
+  CATCHUP = 212
 
 class CustomEffect(IntEnum):
   """
@@ -65,15 +65,15 @@ class CustomEffect(IntEnum):
 
   To be used with WifiLedShopLight.set_custom()
   """
-  CUSTOM_1 = 1,
-  CUSTOM_2 = 2,
-  CUSTOM_3 = 3,
-  CUSTOM_4 = 4,
-  CUSTOM_5 = 5,
-  CUSTOM_6 = 6,
-  CUSTOM_7 = 7,
-  CUSTOM_8 = 8,
-  CUSTOM_9 = 9,
-  CUSTOM_10 = 10,
-  CUSTOM_11 = 11,
-  CUSTOM_12 = 12,
+  CUSTOM_1 = 1
+  CUSTOM_2 = 2
+  CUSTOM_3 = 3
+  CUSTOM_4 = 4
+  CUSTOM_5 = 5
+  CUSTOM_6 = 6
+  CUSTOM_7 = 7
+  CUSTOM_8 = 8
+  CUSTOM_9 = 9
+  CUSTOM_10 = 10
+  CUSTOM_11 = 11
+  CUSTOM_12 = 12

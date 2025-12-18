@@ -18,6 +18,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up sp108e_ws2815 from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data.get('host')
+    
+    # Store entities by entry_id for service access
+    if "entities" not in hass.data[DOMAIN]:
+        hass.data[DOMAIN]["entities"] = {}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
