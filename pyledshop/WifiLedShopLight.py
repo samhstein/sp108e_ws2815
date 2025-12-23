@@ -159,10 +159,13 @@ class WifiLedShopLight(LightEntity):
                     try:
                         response = self.send_command(Command.SYNC, [])
                         if response:
-                            actual_state = bytearray(response)[1]  # IS_ON position
-                            if bool(actual_state) == desired_state:
-                                break
-                    except:
+                            resp_bytes = bytearray(response)
+                            if len(resp_bytes) > 1:
+                                actual_state = resp_bytes[1]  # IS_ON position
+                                if bool(actual_state) == desired_state:
+                                    break
+                    except Exception:
+                        # If sync fails, continue to next toggle attempt
                         pass
         else:
             # Just toggle once
@@ -314,6 +317,7 @@ class WifiLedShopLight(LightEntity):
                         try:
                             await self._brightness_task
                         except asyncio.CancelledError:
+                            # Expected when cancelling a pending debounce task; safe to ignore
                             pass
                     
                     # Optimistic update for immediate UI feedback
@@ -328,6 +332,7 @@ class WifiLedShopLight(LightEntity):
                             # Update UI after debounced command
                             self.async_write_ha_state()
                         except asyncio.CancelledError:
+                            # Expected when debounce task is cancelled; safe to ignore
                             pass
                     
                     self._brightness_task = asyncio.create_task(set_brightness_debounced())
@@ -381,7 +386,6 @@ class WifiLedShopLight(LightEntity):
         padded_data = data + [0] * (min_data_len - len(data))
         raw_data = [CommandFlag.START, *padded_data, command, CommandFlag.END]
         attempts = 0
-        last_exception = None
         
         while attempts <= self._retries:
             try:
@@ -396,20 +400,25 @@ class WifiLedShopLight(LightEntity):
                 if command in [Command.GET_ID, Command.SYNC]:
                     result = self._sock.recv(1024)
                     _LOGGER.debug("Received %d bytes from device", len(result) if result else 0)
-                self._sock.shutdown(socket.SHUT_RDWR)
-                self._sock.close()
-                self._sock = None
+                try:
+                    self._sock.shutdown(socket.SHUT_RDWR)
+                except OSError as e:
+                    # Socket may already be closed or connection not fully established
+                    _LOGGER.debug("Socket shutdown failed (may be already closed): %s", e)
+                finally:
+                    self._sock.close()
+                    self._sock = None
                 return result
             except (socket.timeout, BrokenPipeError, ConnectionRefusedError, 
                     ConnectionResetError, OSError, socket.gaierror, socket.herror) as e:
-                last_exception = e
                 _LOGGER.warning("Connection attempt %d/%d failed: %s", 
                                attempts + 1, self._retries + 1, str(e))
                 if self._sock:
                     try:
                         self._sock.close()
-                    except:
-                        pass
+                    except OSError as close_err:
+                        # Socket may already be closed; safe to ignore
+                        _LOGGER.debug("Error while closing socket after failed connection attempt: %s", close_err)
                     self._sock = None
                 
                 if attempts < self._retries:
@@ -450,21 +459,56 @@ class WifiLedShopLight(LightEntity):
                     # Update state from device
                     self._state.update_from_sync(bytearray(response))
                     
-                    # Use desired values as source of truth (don't let sync override)
+                    # Use desired values as source of truth (don't let sync override),
+                    # but log when the device-reported state differs from desired.
                     if self._desired_state is not None:
+                        if self._state.is_on != self._desired_state:
+                            _LOGGER.debug(
+                                "Device state mismatch for %s: is_on=%s, desired=%s; overriding with desired",
+                                self._attr_name,
+                                self._state.is_on,
+                                self._desired_state,
+                            )
                         self._state.is_on = self._desired_state
                     
                     if self._desired_brightness is not None:
+                        if self._state.brightness != self._desired_brightness:
+                            _LOGGER.debug(
+                                "Device state mismatch for %s: brightness=%s, desired=%s; overriding with desired",
+                                self._attr_name,
+                                self._state.brightness,
+                                self._desired_brightness,
+                            )
                         self._state.brightness = self._desired_brightness
                     
                     if self._desired_color is not None:
+                        if self._state.color != self._desired_color:
+                            _LOGGER.debug(
+                                "Device state mismatch for %s: color=%s, desired=%s; overriding with desired",
+                                self._attr_name,
+                                self._state.color,
+                                self._desired_color,
+                            )
                         self._state.color = self._desired_color
                     
                     if self._desired_effect is not None:
                         # Update mode from desired effect
                         both = {**MONO_EFFECTS, **PRESET_EFFECTS}
                         if self._desired_effect in both:
-                            self._state.mode = both[self._desired_effect]
+                            desired_mode = both[self._desired_effect]
+                            if self._state.mode != desired_mode:
+                                _LOGGER.debug(
+                                    "Device state mismatch for %s: mode=%s (effect=%s), desired_mode=%s (desired_effect=%s); overriding with desired",
+                                    self._attr_name,
+                                    self._state.mode,
+                                    next(
+                                        (k for k, v in both.items() if v == self._state.mode),
+                                        None,
+                                    ),
+                                    desired_mode,
+                                    self._desired_effect,
+                                )
+                            self._state.mode = desired_mode
             except Exception as e:
                 _LOGGER.warning("Failed to update state: %s", e)
 
@@ -473,6 +517,17 @@ class WifiLedShopLight(LightEntity):
         self._hass = self.hass
         # Do initial update
         await self.async_update()
+
+    async def async_will_remove_from_hass(self):
+        """Called when entity is about to be removed from Home Assistant."""
+        # Cancel any pending brightness debounce task to prevent resource leaks
+        if self._brightness_task and not self._brightness_task.done():
+            self._brightness_task.cancel()
+            try:
+                await self._brightness_task
+            except asyncio.CancelledError:
+                # Expected when cancelling; safe to ignore
+                pass
 
     def __repr__(self):
         return f"""WifiLedShopLight @ {self._ip}:{self._port}
