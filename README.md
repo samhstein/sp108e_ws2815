@@ -84,3 +84,10 @@ Built on the shoulders of:
 ## 💬 Feedback
 
 Feel free to open an issue or pull request if you find bugs or have ideas!
+
+## v0.6.0
+
+- Fixed Home Assistant Options Flow compatibility
+- Proper RGB color support (scenes + slider now work correctly)
+- Multiple SP108E controllers supported (one per IP)
+- Improved startup reliability and state sync
