@@ -496,7 +496,11 @@ class WifiLedShopLight(LightEntity):
     def hs_color(self):
         r, g, b = self._state.color
         return color_util.color_RGB_to_hs(r, g, b)
-
+    
+    @property
+    def rgb_color(self):
+        return self._state.color
+    
     @property
     def effect_list(self):
         return list({**MONO_EFFECTS, **PRESET_EFFECTS})
